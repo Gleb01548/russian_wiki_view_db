@@ -34,7 +34,7 @@ path_script_delete_res = os.path.join(dir_path, script_delete_res)
 dag = DAG(
     dag_id="load_to_postgres",
     start_date=dt.datetime(2022, 1, 1),
-    end_date=dt.datetime(2022, 12, 31),
+    end_date=dt.datetime(2022, 1, 2),
     schedule_interval="@hourly",
     tags=["russian_wikipedia", "load_to_postgres"],
     default_args=default_args,
@@ -102,126 +102,28 @@ fetch_pageviews = PythonOperator(
     dag=dag,
 )
 
-
-def _make_script_write_table_page_name(
-    path_script_write_table_page_name, data_interval_start
-):
-    with open(path_script_write_table_page_name, "w") as f:
-        f.write(
-            f"""
-with
-    table1 as (
-        select
-            page_name
-        from
-            resource.data_views
-        where
-            datetime = '{data_interval_start}'
-    )
-insert into
-    wiki.table_page_name (page_name)
-select distinct
-    dv.page_name
-from
-    table1 as dv
-    left join wiki.table_page_name as tpn on dv.page_name = tpn.page_name
-where
-    tpn.page_name is null;
-            """
-        )
-
-
-make_script_write_table_page_name = PythonOperator(
-    task_id="make_script_write_table_page_name",
-    python_callable=_make_script_write_table_page_name,
-    op_kwargs={"path_script_write_table_page_name": path_script_write_table_page_name},
-    dag=dag,
-)
-
-
-def _make_script_write_stat_views(path_script_write_stat_views, data_interval_start):
-    with open(path_script_write_stat_views, "w") as f:
-        f.write(
-            f"""
-with
-    table1 as (
-        select
-            page_name, page_view_count, datetime
-        from
-            resource.data_views
-        where
-            datetime = '{data_interval_start}'
-    )
-insert into
-    wiki.stat_views (table_page_name_id, page_view_count, datetime)
-select
-    tpn.table_page_name_id,
-    dv.page_view_count,
-    dv.datetime
-from
-    table1 as dv
-    left join wiki.table_page_name as tpn on dv.page_name = tpn.page_name
-            """
-        )
-
-
-make_script_write_stat_views = PythonOperator(
-    task_id="make_script_write_stat_views",
-    python_callable=_make_script_write_stat_views,
-    op_kwargs={"path_script_write_stat_views": path_script_write_stat_views},
-    dag=dag,
-)
-
-
-def _make_script_del_res(path_script_delete_res, data_interval_start):
-    with open(path_script_delete_res, "w") as f:
-        f.write(
-            f"""
-DELETE FROM resource.data_views WHERE datetime = '{data_interval_start}';
-            """
-        )
-
-
-make_script_del_res = PythonOperator(
-    task_id="make_script_del_res",
-    python_callable=_make_script_del_res,
-    op_kwargs={"path_script_delete_res": path_script_delete_res},
-    dag=dag,
-)
-
-
-write_postgres = PostgresOperator(
-    task_id="load_res",
-    postgres_conn_id="russian_wiki",
+load_to_postgres = PostgresOperator(
+    task_id="load_to_postgres",
+    postgres_conn_id="russian_wiki_postgres",
     sql=script_load_res,
     dag=dag,
 )
 
-write_table_page_name = PostgresOperator(
-    task_id="write_table_page_name",
-    postgres_conn_id="russian_wiki",
-    sql=script_write_table_page_name,
-    dag=dag,
-)
-
-write_stat_views = PostgresOperator(
-    task_id="write_stat_views",
-    postgres_conn_id="russian_wiki",
-    sql=script_write_stat_views,
-    dag=dag,
-)
-
-delete_res = PostgresOperator(
-    task_id="delet_res",
-    postgres_conn_id="russian_wiki",
-    sql=script_delete_res,
-    dag=dag,
-)
+# def _make_script_del_res(path_script_delete_res, data_interval_start):
+#     with open(path_script_delete_res, "w") as f:
+#         f.write(
+#             f"""
+# DELETE FROM resource.data_views WHERE datetime = '{data_interval_start}';
+#             """
+#         )
 
 
-get_data >> extract_gz >> fetch_pageviews
-fetch_pageviews >> write_postgres
-[write_postgres, make_script_write_table_page_name] >> write_table_page_name
-[write_table_page_name, make_script_write_stat_views] >> write_stat_views
-make_script_del_res >> delete_res
-write_stat_views >> delete_res
+# make_script_del_res = PythonOperator(
+#     task_id="make_script_del_res",
+#     python_callable=_make_script_del_res,
+#     op_kwargs={"path_script_delete_res": path_script_delete_res},
+#     dag=dag,
+# )
+
+
+get_data >> extract_gz >> fetch_pageviews >> load_to_postgres
