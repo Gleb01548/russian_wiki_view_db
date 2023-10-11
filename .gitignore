@@ -1,0 +1,7 @@
+airflow_db
+config
+data
+database
+logs
+venv
+.env
