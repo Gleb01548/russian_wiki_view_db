@@ -5,3 +5,5 @@ database
 logs
 venv
 .env
+notebook
+dags/__pycache__
