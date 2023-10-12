@@ -76,6 +76,8 @@ x-airflow-common:
     AIRFLOW_CONN_MOVIELENS: http://airflow:airflow@movielens
     MOVIELENS_USER: airflow
     MOVIELENS_PASSWORD: airflow
+  env_file:
+    - .env
   networks:
     - default
   volumes:
