@@ -7,3 +7,4 @@ venv
 .env
 notebook
 dags/__pycache__
+plugins/__pycache__
