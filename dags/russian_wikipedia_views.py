@@ -60,7 +60,7 @@ def _сheck_data(**context):
         return False
 
 
-сheck_data = PythonSensor(task_id="сheck_data", python_callable=_сheck_data)
+сheck_data = PythonSensor(task_id="сheck_data", python_callable=_сheck_data, dag=dag)
 
 
 def _get_data(output_path, **context):
@@ -149,6 +149,7 @@ dag_run_load_to_clickhouse = TriggerDagRunOperator(
     dag=dag,
     execution_date="{{ ds }}",
     wait_for_completion=True,
+    
 )
 
 
