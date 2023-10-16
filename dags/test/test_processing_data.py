@@ -2,24 +2,20 @@ import os
 import datetime as dt
 
 import pendulum
-import psycopg2
 from airflow import DAG
 from airflow.sensors.filesystem import FileSensor
-from airflow.utils.task_group import TaskGroup
-from airflow.operators.dummy import DummyOperator
-from airflow.operators.bash import BashOperator
-from airflow.providers.postgres.operators.postgres import PostgresOperator
 from airflow.operators.datetime import BranchDateTimeOperator
 from airflow.operators.empty import EmptyOperator
-from airflow.decorators import task_group
 
 from wikiviews.unzip_load_postgres import UnzipLoadPostgres
+from wikiviews.postgresql_to_clickhouse import PostgresqlToClickhouse
 
 from constants import (
     PATH_FOR_WIKIPAGEVIEWS_GZ,
     PATH_WORK_FILES,
     DOMAIN_CONFIG,
     PASTGRES_CONN_ID,
+    CLICKHOUSE_CONN_ID,
 )
 
 
@@ -29,7 +25,6 @@ default_args = {
     "retry_delay": dt.timedelta(minutes=3),
     "execution_timeout": dt.timedelta(minutes=60),
     "depends_on_past": True,
-    "start_date": pendulum.datetime(2020, 1, 1).add(days=-1),
     "end_date": pendulum.datetime(2021, 1, 1),
 }
 
@@ -44,6 +39,9 @@ dag_ru = DAG(
         domain_code,
     ],
     default_args=default_args,
+    start_date=pendulum.datetime(2020, 1, 1).add(
+        hours=DOMAIN_CONFIG[domain_code]["time_correction"]
+    ),
     schedule_interval="@hourly",
     template_searchpath=PATH_WORK_FILES,
 )
@@ -61,6 +59,9 @@ dag_en = DAG(
         domain_code,
     ],
     default_args=default_args,
+    start_date=pendulum.datetime(2020, 1, 1).add(
+        hours=DOMAIN_CONFIG[domain_code]["time_correction"]
+    ),
     schedule_interval="@hourly",
     template_searchpath=PATH_WORK_FILES,
 )
@@ -72,7 +73,7 @@ for domain_code, config in DOMAIN_CONFIG.items():
         task_id="find_file_gz",
         filepath=os.path.join(
             PATH_FOR_WIKIPAGEVIEWS_GZ,
-            "pageviews-{{ data_interval_start.format('YYYYMMDD-HH') }}0000.gz",
+            "pageviews-{{ data_interval_end.format('YYYYMMDD-HH') }}0000.gz",
         ),
         dag=config["dag"],
     )
@@ -82,7 +83,7 @@ for domain_code, config in DOMAIN_CONFIG.items():
         config=config,
         path_dz_file=os.path.join(
             PATH_FOR_WIKIPAGEVIEWS_GZ,
-            "pageviews-{{ data_interval_start.format('YYYYMMDD-HH') }}0000.gz",
+            "pageviews-{{ data_interval_end.format('YYYYMMDD-HH') }}0000.gz",
         ),
         postgres_conn_id=PASTGRES_CONN_ID,
         path_script_load_data=path_script_load_data,
@@ -92,18 +93,28 @@ for domain_code, config in DOMAIN_CONFIG.items():
     time_check = BranchDateTimeOperator(
         task_id="time_check",
         use_task_logical_date=True,
-        follow_task_ids_if_true=[not_end_day.task_id],
-        follow_task_ids_if_false=[not_end_day_2.task_id],
-        target_upper=pendulum.time(23, 0, 0).add(
-            hours=-DOMAIN_CODE_TIME_CORRECT[domain_code]
-        ),
-        target_lower=pendulum.time(23, 0, 0).add(
-            hours=-DOMAIN_CODE_TIME_CORRECT[domain_code]
-        ),
-        dag=dag,
+        follow_task_ids_if_true=["postgres_to_clickhouse"],
+        follow_task_ids_if_false=["not_end_day"],
+        target_upper=pendulum.time(23, 0, 0).add(hours=-config["time_correction"]),
+        target_lower=pendulum.time(23, 0, 0).add(hours=-config["time_correction"]),
+        dag=config["dag"],
+    )
+    not_end_day = EmptyOperator(task_id="not_end_day", dag=config["dag"])
+
+    postgres_to_clickhouse = PostgresqlToClickhouse(
+        task_id="postgres_to_clickhouse",
+        config=config,
+        postgres_conn_id=PASTGRES_CONN_ID,
+        clickhouse_conn_id=CLICKHOUSE_CONN_ID,
+        dag=config["dag"],
     )
 
-    find_file >> make_scripts_load
+    (
+        find_file
+        >> make_scripts_load
+        >> time_check
+        >> [postgres_to_clickhouse, not_end_day]
+    )
 
 
 # make_scripts_load = MakeScriptsLoad(

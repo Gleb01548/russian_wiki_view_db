@@ -1,24 +1,18 @@
-import gzip
-import psycopg2
 import logging
 from airflow.models import BaseOperator
 from airflow.utils.context import Context
-from airflow.models.connection import Connection
 
 
-class UnzipLoadPostgres(BaseOperator):
+class ViewsAnalysis(BaseOperator):
     """
     Подгатавливает скрипты для загрузки данных в postgres
     """
 
-    template_fields = ("path_dz_file",)
-
     def __init__(
         self,
         config: dict,
-        path_dz_file: str,
-        path_script_load_data: str,
         postgres_conn_id: str,
+        clickhouse_conn_id: str
         **kwargs,
     ):
         super().__init__(**kwargs)
@@ -30,7 +24,7 @@ class UnzipLoadPostgres(BaseOperator):
 
     def execute(self, context: Context) -> None:
         logging.info(self.path_dz_file)
-        actual_time = (
+        actual_date = (
             context["data_interval_start"]
             .add(hours=self.time_correction)
             .to_atom_string()
