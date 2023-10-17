@@ -28,12 +28,12 @@ class CreateTableIFNotExists(BaseOperator):
         pg_hook.get_records(
             f"""
             create schema if not exists resource;
-            create table resource.{self.domain_code} (
+            create table if not exists resource.{self.domain_code} (
                 {self.domain_code}_id serial primary key,
                 page_name VARCHAR(2000) not null,
                 page_view_count int not null,
                 datetime TIMESTAMP not null,
-                constraint ru_unique_page_name_datetion unique (page_name, datetime)
+                constraint {self.domain_code}_unique_page_name_datetion unique (page_name, datetime)
             );
             ALTER SEQUENCE resource.{self.domain_code}_{self.domain_code}_id_seq CYCLE;
             """
@@ -42,7 +42,7 @@ class CreateTableIFNotExists(BaseOperator):
         pg_hook.get_records(
             f"""
             create schema if not exists analysis;
-            create table analysis.{self.domain_code} (
+            create table if not exists analysis.{self.domain_code} (
                 {self.domain_code}_id serial primary key,
                 page_name VARCHAR(2000) not null,
                 page_view_count int not null,
@@ -98,14 +98,5 @@ class CreateTableIFNotExists(BaseOperator):
         )
 
     def execute(self, context: Context) -> None:
-        self.actual_date = (
-            context["data_interval_start"]
-            .add(hours=self.time_correction)
-            .to_date_string()
-        )
-        query_result = self._query()
-        tg_hook = ClickHouseHook(clickhouse_conn_id=self.clickhouse_conn_id)
-        tg_hook.execute(
-            f"INSERT INTO data_views_{self.domain_code} (page_name, page_view_count, datetime) VALUES",
-            query_result,
-        )
+        self._postgres()
+        self._clickhouse()

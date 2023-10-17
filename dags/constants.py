@@ -6,12 +6,10 @@ CLICKHOUSE_CONN_ID = "wiki_views_clickhouse"
 DOMAIN_CONFIG = {
     "ru": {
         "domain_code": "ru",
-        "dag": None,
         "time_correction": 3,
     },
     "en": {
         "domain_code": "en",
-        "dag": None,
         "time_correction": -4,
     },
 }
