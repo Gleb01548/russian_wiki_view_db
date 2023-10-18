@@ -44,11 +44,25 @@ class CreateTableIFNotExists(BaseOperator):
             create schema if not exists analysis;
             create table if not exists analysis.{self.domain_code} (
                 {self.domain_code}_id serial primary key,
+                rank int not null,
                 page_name VARCHAR(2000) not null,
-                page_view_count int not null,
-                datetime TIMESTAMP not null,
-                date_period_start VARCHAR(50) not null,
-                constraint {self.domain_code}_unique_page_name_datetion unique (page_name, datetime, date_period_start)
+                page_view_sum int not null,
+                date TIMESTAMP not null,
+                date_period_type VARCHAR(50) not null,
+                constraint {self.domain_code}_unique_page_name_datetion unique (page_name, date, date_period_type)
+            );
+            """
+        )
+
+        pg_hook.get_records(
+            f"""
+            create schema if not exists sum_views;
+            create table if not exists sum_views.{self.domain_code} (
+                {self.domain_code}_id serial primary key,
+                page_view_sum int not null,
+                date TIMESTAMP not null,
+                date_period_type VARCHAR(50) not null,
+                constraint {self.domain_code}_unique_datetime_date_period_start unique (date, date_period_type)
             );
             """
         )
@@ -88,12 +102,24 @@ class CreateTableIFNotExists(BaseOperator):
         ch_hook.execute(
             f"""
             create table if not exists postgres_analysis_{self.domain_code} (
+            rank Int32,
             page_name String,
-            page_view_count Int32,
-            datetime DATETIME,
-            date_period_start String
+            page_view_sum Int32,
+            date DATETIME,
+            date_period_type String
             ) ENGINE = PostgreSQL('{host}:{port}', '{dbname}',
             '{self.domain_code}', '{user}', '{password}', 'analysis');
+            """
+        )
+
+        ch_hook.execute(
+            f"""
+            create table if not exists postgres_sum_views_{self.domain_code} (
+            page_view_sum Int32,
+            date DATETIME,
+            date_period_type String
+            ) ENGINE = PostgreSQL('{host}:{port}', '{dbname}',
+            '{self.domain_code}', '{user}', '{password}', 'sum_views');
             """
         )
 

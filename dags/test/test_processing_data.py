@@ -4,33 +4,44 @@ import datetime as dt
 import requests
 import pendulum
 from airflow import DAG
-from airflow.sensors.filesystem import FileSensor
 from airflow.operators.datetime import BranchDateTimeOperator
+from airflow.operators.weekday import BranchDayOfWeekOperator
 from airflow.operators.empty import EmptyOperator
 from airflow.operators.python import PythonOperator
+from airflow.operators.python import BranchPythonOperator
+from airflow.providers.postgres.operators.postgres import PostgresOperator
 from airflow.sensors.python import PythonSensor
 from urllib import request
 from airflow.decorators import task_group
 
-from wikiviews.unzip_load_postgres import UnzipLoadPostgres
+from wikiviews.make_scripts_load import MakeScriptsLoad
+from wikiviews.load_postgres import LoadPostgres
 from wikiviews.postgresql_to_clickhouse import PostgresqlToClickhouse
 from wikiviews.create_table_if_not_exists import CreateTableIFNotExists
+from wikiviews.aggregation_load_postgres import АggregationLoadPostgres
+
 
 from constants import (
-    PATH_FOR_WIKIPAGEVIEWS_GZ,
     PATH_WORK_FILES,
     DOMAIN_CONFIG,
     PASTGRES_CONN_ID,
     CLICKHOUSE_CONN_ID,
 )
 
+path_save_script = os.path.join(
+    PATH_WORK_FILES,
+    "script_load_postgres",
+)
+path_dz_file = os.path.join(
+    PATH_WORK_FILES,
+    "pageviews.gz",
+)
 
 default_args = {
     "wait_for_downstream": True,
     "retries": 5,
     "retry_delay": dt.timedelta(minutes=3),
     "execution_timeout": dt.timedelta(minutes=60),
-    "depends_on_past": True,
     "end_date": pendulum.datetime(2021, 1, 1),
 }
 
@@ -49,85 +60,8 @@ dag = DAG(
 )
 
 
-# domain_code = "en"
-# dag_en = DAG(
-#     dag_id=f"{DOMAIN_CONFIG[domain_code]['domain_code']}_unzip_and_load_data_postgresql",
-#     tags=[
-#         "test",
-#         "wikipedia_views",
-#         "unzip",
-#         "load_to_postgres",
-#         domain_code,
-#     ],
-#     default_args=default_args,
-#     start_date=pendulum.datetime(2020, 1, 1).add(
-#         hours=-DOMAIN_CONFIG[domain_code]["time_correction"]
-#     ),
-#     schedule_interval="@hourly",
-#     template_searchpath=PATH_WORK_FILES,
-# )
-# DOMAIN_CONFIG[domain_code]["dag"] = dag_en
-
-# path_script_load_data = os.path.join(PATH_WORK_FILES, "load_script")
-# for domain_code, config in DOMAIN_CONFIG.items():
-#     find_file = FileSensor(
-#         task_id="find_file_gz",
-#         filepath=os.path.join(
-#             PATH_FOR_WIKIPAGEVIEWS_GZ,
-#             "pageviews-{{ data_interval_end.format('YYYYMMDD-HH') }}0000.gz",
-#         ),
-#         dag=config["dag"],
-#     )
-
-#     create_table = CreateTableIFNotExists(
-#         task_id="create_table",
-#         config=config,
-#         postgres_conn_id=PASTGRES_CONN_ID,
-#         clickhouse_conn_id=CLICKHOUSE_CONN_ID,
-#         dag=config["dag"],
-#     )
-
-#     unzip_load_postgres = UnzipLoadPostgres(
-#         task_id="unzip_load_postgres",
-#         config=config,
-#         path_dz_file=os.path.join(
-#             PATH_FOR_WIKIPAGEVIEWS_GZ,
-#             "pageviews-{{ data_interval_end.format('YYYYMMDD-HH') }}0000.gz",
-#         ),
-#         postgres_conn_id=PASTGRES_CONN_ID,
-#         path_script_load_data=path_script_load_data,
-#         dag=config["dag"],
-#     )
-
-#     time_check = BranchDateTimeOperator(
-#         task_id="time_check",
-#         use_task_logical_date=True,
-#         follow_task_ids_if_true=["postgres_to_clickhouse"],
-#         follow_task_ids_if_false=["not_end_day"],
-#         target_upper=pendulum.time(23, 0, 0).add(hours=-config["time_correction"]),
-#         target_lower=pendulum.time(23, 0, 0).add(hours=-config["time_correction"]),
-#         dag=config["dag"],
-#     )
-#     not_end_day = EmptyOperator(task_id="not_end_day", dag=config["dag"])
-
-#     postgres_to_clickhouse = PostgresqlToClickhouse(
-#         task_id="postgres_to_clickhouse",
-#         config=config,
-#         clickhouse_conn_id=CLICKHOUSE_CONN_ID,
-#         dag=config["dag"],
-#     )
-
-#     (
-#         find_file
-#         >> create_table
-#         >> unzip_load_postgres
-#         >> time_check
-#         >> [postgres_to_clickhouse, not_end_day]
-#     )
-
-
 def _сheck_data(**context):
-    year, month, day, hour, *_ = context["data_interval_start"].timetuple()
+    year, month, day, hour, *_ = context["data_interval_end"].timetuple()
     url = (
         "https://dumps.wikimedia.org/other/pageviews/"
         f"{year}/{year}-{month:0>2}/"
@@ -144,18 +78,13 @@ def _сheck_data(**context):
 
 
 def _get_data(**context):
-    year, month, day, hour, *_ = context["data_interval_start"].timetuple()
+    year, month, day, hour, *_ = context["data_interval_end"].timetuple()
     url = (
         "https://dumps.wikimedia.org/other/pageviews/"
         f"{year}/{year}-{month:0>2}/"
         f"pageviews-{year}{month:0>2}{day:0>2}-{hour:0>2}0000.gz"
     )
-
-    file_name_result = os.path.join(
-        PATH_FOR_WIKIPAGEVIEWS_GZ,
-        f"pageviews-{year}{month:0>2}{day:0>2}-{hour:0>2}0000.gz",
-    )
-    request.urlretrieve(url, file_name_result)
+    request.urlretrieve(url, path_dz_file)
 
 
 get_data = PythonOperator(
@@ -164,52 +93,204 @@ get_data = PythonOperator(
     dag=dag,
 )
 
-groups = []
+make_scripts_load = MakeScriptsLoad(
+    task_id="make_scripts_load",
+    domain_config=DOMAIN_CONFIG,
+    path_dz_file=path_dz_file,
+    path_save_script=path_save_script,
+    dag=dag,
+)
+
+
+@task_group(dag=dag, group_id="create_table")
+def create_table_group():
+    for domain_code, config in DOMAIN_CONFIG.items():
+        create_table = CreateTableIFNotExists(
+            task_id=f"create_table_{domain_code}",
+            config=config,
+            postgres_conn_id=PASTGRES_CONN_ID,
+            clickhouse_conn_id=CLICKHOUSE_CONN_ID,
+            dag=dag,
+        )
+        create_table
+
+
+create_table_group = create_table_group()
+
+
+groups_load_to_postgres = []
 for domain_code, config in DOMAIN_CONFIG.items():
 
     @task_group(dag=dag, group_id=f"load_to_postgres_trigger_clickhouse_{domain_code}")
     def load_to_postgres_trigger_clickhouse():
-          
-        create_table = CreateTableIFNotExists(
-            task_id="create_table",
-            config=config,
+        load_to_postgres = LoadPostgres(
+            task_id="load_to_postgres",
+            path_script_load_data=f"{path_save_script}_{domain_code}.sql",
             postgres_conn_id=PASTGRES_CONN_ID,
-            clickhouse_conn_id=CLICKHOUSE_CONN_ID,
-            dag=config["dag"],
-        )
-        
-        unzip_load_postgres = UnzipLoadPostgres(
-            task_id="unzip_load_postgres",
-            config=config,
-            path_dz_file=os.path.join(
-                PATH_FOR_WIKIPAGEVIEWS_GZ,
-                "pageviews-{{ data_interval_end.format('YYYYMMDD-HH') }}0000.gz",
-            ),
-            postgres_conn_id=PASTGRES_CONN_ID,
-            path_script_load_data=path_script_load_data,
-            dag=config["dag"],
+            dag=dag,
         )
 
-        not_end_day = EmptyOperator(task_id=f"not_end_day_{domain_code}", dag=dag)
-        not_end_day_2 = EmptyOperator(task_id=f"not_end_day2_{domain_code}", dag=dag)
+        not_end_day = EmptyOperator(task_id="not_end_day", dag=dag)
+        postgres_to_clickhouse = PostgresqlToClickhouse(
+            task_id="postgres_clickhouse",
+            config=config,
+            clickhouse_conn_id=CLICKHOUSE_CONN_ID,
+            dag=dag,
+        )
 
         time_check = BranchDateTimeOperator(
             task_id="time_check",
             use_task_logical_date=True,
-            follow_task_ids_if_true=[not_end_day.task_id],
-            follow_task_ids_if_false=[not_end_day_2.task_id],
-            target_upper=pendulum.time(23, 0, 0).add(
-                hours=-DOMAIN_CODE_TIME_CORRECT[domain_code]
-            ),
-            target_lower=pendulum.time(23, 0, 0).add(
-                hours=-DOMAIN_CODE_TIME_CORRECT[domain_code]
+            follow_task_ids_if_true=[postgres_to_clickhouse.task_id],
+            follow_task_ids_if_false=[not_end_day.task_id],
+            target_upper=pendulum.time(23, 0, 0).add(hours=-config["time_correction"]),
+            target_lower=pendulum.time(23, 0, 0).add(hours=-config["time_correction"]),
+            dag=dag,
+        )
+        clean_table = PostgresOperator(
+            task_id="clean_table",
+            postgres_conn_id=PASTGRES_CONN_ID,
+            sql=(
+                f"DELETE FROM resource.{domain_code} "
+                "WHERE datetime::date ="
+                "'{{ data_interval_start.add(hours=%(time_correction)s).format('YYYY-MM-DD') }}';"
+                % {"time_correction": config["time_correction"]},
             ),
             dag=dag,
         )
 
-        load_to_postgres >> time_check >> [not_end_day, not_end_day_2]
+        aggregation_date_day = АggregationLoadPostgres(
+            task_id="aggregate_date_day",
+            clickhouse_conn_id=CLICKHOUSE_CONN_ID,
+            date_period_type="day",
+            query_type="aggregate_date",
+            config=config,
+            dag=dag,
+        )
 
-    groups.append(load_to_postgres_trigger_clickhouse())
+        sum_views_day = АggregationLoadPostgres(
+            task_id="sum_views_day",
+            clickhouse_conn_id=CLICKHOUSE_CONN_ID,
+            date_period_type="day",
+            query_type="sum_views",
+            config=config,
+            dag=dag,
+        )
+
+        aggregation_date_week = АggregationLoadPostgres(
+            task_id="aggregate_date_week",
+            clickhouse_conn_id=CLICKHOUSE_CONN_ID,
+            date_period_type="week",
+            query_type="aggregate_date",
+            config=config,
+            dag=dag,
+        )
+
+        sum_views_week = АggregationLoadPostgres(
+            task_id="sum_views_week",
+            clickhouse_conn_id=CLICKHOUSE_CONN_ID,
+            date_period_type="week",
+            query_type="sum_views",
+            config=config,
+            dag=dag,
+        )
+
+        aggregation_date_month = АggregationLoadPostgres(
+            task_id="aggregate_date_month",
+            clickhouse_conn_id=CLICKHOUSE_CONN_ID,
+            date_period_type="month",
+            query_type="aggregate_date",
+            config=config,
+            dag=dag,
+        )
+
+        sum_views_month = АggregationLoadPostgres(
+            task_id="sum_views_month",
+            clickhouse_conn_id=CLICKHOUSE_CONN_ID,
+            date_period_type="month",
+            query_type="sum_views",
+            config=config,
+            dag=dag,
+        )
+
+        aggregation_date_year = АggregationLoadPostgres(
+            task_id="aggregate_date_year",
+            clickhouse_conn_id=CLICKHOUSE_CONN_ID,
+            date_period_type="year",
+            query_type="aggregate_date",
+            config=config,
+            dag=dag,
+        )
+
+        sum_views_year = АggregationLoadPostgres(
+            task_id="sum_views_year",
+            clickhouse_conn_id=CLICKHOUSE_CONN_ID,
+            date_period_type="year",
+            query_type="sum_views",
+            config=config,
+            dag=dag,
+        )
+
+        end_week = EmptyOperator(task_id="end_week", dag=dag)
+        end_month = EmptyOperator(task_id="end_month", dag=dag)
+        end_year = EmptyOperator(task_id="end_year", dag=dag)
+
+        not_end_week_month_year = EmptyOperator(
+            task_id="not_end_week_month_year", dag=dag
+        )
+
+        def _check_end_week_month_year(config: dict, **context):
+            list_branches = []
+            time_correction = config["time_correction"]
+
+            data_interval_start = context["data_interval_start"].add(
+                hours=time_correction
+            )
+            if data_interval_start.day_of_week == 0:
+                list_branches.append(end_week.task_id)
+
+            if data_interval_start.day == data_interval_start.days_in_month:
+                list_branches.append(end_month.task_id)
+
+            if data_interval_start.year != data_interval_start.add(days=1).year:
+                list_branches.append(end_year.task_id)
+
+            if list_branches:
+                return list_branches
+            else:
+                return not_end_week_month_year.task_id
+
+        check_end_week_month_year = BranchPythonOperator(
+            task_id="check_end_week_month_year",
+            python_callable=_check_end_week_month_year,
+            op_args=[config],
+        )
+
+        (load_to_postgres >> time_check >> [postgres_to_clickhouse, not_end_day])
+
+        postgres_to_clickhouse >> [
+            aggregation_date_day,
+            sum_views_day,
+            clean_table,
+            check_end_week_month_year,
+        ]
+        check_end_week_month_year >> [
+            end_week,
+            end_month,
+            end_year,
+            not_end_week_month_year,
+        ]
+        end_week >> [aggregation_date_week, sum_views_week]
+        end_month >> [aggregation_date_month, sum_views_month]
+        end_year >> [aggregation_date_year, sum_views_year]
+
+    groups_load_to_postgres.append(load_to_postgres_trigger_clickhouse())
 
 
-find_file >> extract_gz >> make_scripts_load >> [task for task in groups]
+(
+    сheck_data
+    >> create_table_group
+    >> get_data
+    >> make_scripts_load
+    >> [task for task in groups_load_to_postgres]
+)
