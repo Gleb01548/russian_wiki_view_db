@@ -5,7 +5,6 @@ import requests
 import pendulum
 from airflow import DAG
 from airflow.operators.datetime import BranchDateTimeOperator
-from airflow.operators.weekday import BranchDayOfWeekOperator
 from airflow.operators.empty import EmptyOperator
 from airflow.operators.python import PythonOperator
 from airflow.operators.python import BranchPythonOperator
@@ -19,6 +18,7 @@ from wikiviews.load_postgres import LoadPostgres
 from wikiviews.postgresql_to_clickhouse import PostgresqlToClickhouse
 from wikiviews.create_table_if_not_exists import CreateTableIFNotExists
 from wikiviews.aggregation_load_postgres import АggregationLoadPostgres
+from wikiviews.analysis import Analysis
 
 
 from constants import (
@@ -36,6 +36,11 @@ path_dz_file = os.path.join(
     PATH_WORK_FILES,
     "pageviews.gz",
 )
+path_analysis_save = os.path.join(
+    PATH_WORK_FILES,
+    "analysis",
+)
+
 
 default_args = {
     "wait_for_downstream": True,
@@ -266,6 +271,46 @@ for domain_code, config in DOMAIN_CONFIG.items():
             op_args=[config],
         )
 
+        analysis_day = Analysis(
+            task_id="analysis_day",
+            config=config,
+            postgres_conn_id=PASTGRES_CONN_ID,
+            clickhouse_conn_id=CLICKHOUSE_CONN_ID,
+            date_period_type="day",
+            path_save=path_analysis_save,
+            dag=dag,
+        )
+
+        analysis_week = Analysis(
+            task_id="analysis_week",
+            config=config,
+            postgres_conn_id=PASTGRES_CONN_ID,
+            clickhouse_conn_id=CLICKHOUSE_CONN_ID,
+            date_period_type="week",
+            path_save=path_analysis_save,
+            dag=dag,
+        )
+
+        analysis_month = Analysis(
+            task_id="analysis_month",
+            config=config,
+            postgres_conn_id=PASTGRES_CONN_ID,
+            clickhouse_conn_id=CLICKHOUSE_CONN_ID,
+            date_period_type="month",
+            path_save=path_analysis_save,
+            dag=dag,
+        )
+
+        analysis_year = Analysis(
+            task_id="analysis_year",
+            config=config,
+            postgres_conn_id=PASTGRES_CONN_ID,
+            clickhouse_conn_id=CLICKHOUSE_CONN_ID,
+            date_period_type="year",
+            path_save=path_analysis_save,
+            dag=dag,
+        )
+
         (load_to_postgres >> time_check >> [postgres_to_clickhouse, not_end_day])
 
         postgres_to_clickhouse >> [
@@ -274,6 +319,7 @@ for domain_code, config in DOMAIN_CONFIG.items():
             clean_table,
             check_end_week_month_year,
         ]
+        [aggregation_date_day, sum_views_day] >> analysis_day
         check_end_week_month_year >> [
             end_week,
             end_month,
@@ -283,6 +329,10 @@ for domain_code, config in DOMAIN_CONFIG.items():
         end_week >> [aggregation_date_week, sum_views_week]
         end_month >> [aggregation_date_month, sum_views_month]
         end_year >> [aggregation_date_year, sum_views_year]
+
+        [aggregation_date_week, sum_views_week] >> analysis_week
+        [aggregation_date_month, sum_views_month] >> analysis_month
+        [aggregation_date_year, sum_views_year] >> analysis_year
 
     groups_load_to_postgres.append(load_to_postgres_trigger_clickhouse())
 

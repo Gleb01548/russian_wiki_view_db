@@ -148,7 +148,7 @@ services:
     volumes:
       - ./database/clikchouse/logs:/var/log/clickhouse-server/
       - ./database/clikchouse/data:/var/lib/clickhouse/
-      # - ./configs:/etc/clickhouse-server
+      - ./clickhouse-server:/etc/clickhouse-server
     ports:
       - 1823:8123
       - 1905:9000

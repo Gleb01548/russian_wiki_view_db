@@ -4,12 +4,9 @@ import logging
 import json
 import pathlib
 import pendulum
-import pandas as pd
-import plotly.express as px
 from airflow.models import BaseOperator
 from airflow.utils.context import Context
 from airflow.providers.postgres.hooks.postgres import PostgresHook
-from airflow_clickhouse_plugin.hooks.clickhouse import ClickHouseHook
 from airflow import AirflowException
 
 
@@ -22,7 +19,6 @@ class Analysis(BaseOperator):
         self,
         config: dict,
         postgres_conn_id: str,
-        clickhouse_conn_id: str,
         date_period_type: str,
         path_save: str,
         **kwargs,
@@ -31,7 +27,6 @@ class Analysis(BaseOperator):
         self.domain_code = config["domain_code"]
         self.time_correction = config["time_correction"]
         self.postgres_conn_id = postgres_conn_id
-        self.clickhouse_conn_id = clickhouse_conn_id
         self.date_period_type = date_period_type
         self.path_save = path_save
 
@@ -53,94 +48,9 @@ class Analysis(BaseOperator):
             "month": {"months": -1},
             "year": {"years": -1},
         }
-        return (
-            pendulum.from_format(actual_date, "YYYY-MM-DD")
-            .add(**period_arg[self.date_period_type])
-            .format("YYYY-MM-DD")
+        return pendulum.from_format(actual_date, "YYYY-MM-DD").add(
+            **period_arg[self.date_period_type]
         )
-
-    def _create_graphs(self, actual_date: str, path_save: str):
-        path_save = os.path.join(path_save, "graphs")
-        pathlib.Path(path_save).mkdir(parents=True, exist_ok=True)
-
-        path_save_graph = os.path.join(
-            path_save,
-            f"graph_linear_{self.date_period_type}_{actual_date}_{self.domain_code}.png",
-        )
-
-        logging.info(actual_date)
-
-        conf_graph = {
-            "day": {
-                "date_func": "HOUR",
-                "x_name": "hours",
-                "divisor": 1000,
-                "title": f"Number of views for the last day ({actual_date}) in thousands",
-            },
-            "week": {
-                "date_func": "DAYOFWEEK",
-                "x_name": "days",
-                "divisor": 1000000,
-                "title": (
-                    "Number of views for the last week "
-                    f"""({pendulum.from_format(actual_date, "YYYY-MM-DD").start_of('week').format("YYYY-MM-DD")})"""
-                    " in millions"
-                ),
-            },
-            "month": {
-                "date_func": "DAYOFMONTH",
-                "x_name": "days",
-                "divisor": 1000000,
-                "title": (
-                    "Number of views for the last month "
-                    f"""({pendulum.from_format(actual_date, "YYYY-MM-DD").format("YYYY-MM")}) in millions"""
-                ),
-            },
-            "year": {
-                "date_func": "MONTH",
-                "x_name": "months",
-                "divisor": 1000000,
-                "title": (
-                    "Number of views for the last year "
-                    f"""({pendulum.from_format(actual_date, "YYYY-MM-DD").format("YYYY")}) in millions"""
-                ),
-            },
-        }
-
-        conf_graph = conf_graph[self.date_period_type]
-
-        query = f"""
-        select {conf_graph['date_func']}(datetime) as {conf_graph['x_name']},
-            round(SUM(page_view_count) / {conf_graph["divisor"]}, 2) as views
-        from data_views_{self.domain_code}
-        where date_trunc('{self.date_period_type}', datetime)
-        = date_trunc('{self.date_period_type}', '{actual_date}'::datetime)
-        group by {conf_graph['date_func']}(datetime)
-        order by {conf_graph['date_func']}(datetime);
-        """
-
-        ch_hook = ClickHouseHook(clickhouse_conn_id=self.clickhouse_conn_id)
-        query_res = ch_hook.execute(query)
-
-        dict_res = {f"{conf_graph['x_name']}": [], "views": []}
-
-        for line in query_res:
-            dict_res[conf_graph["x_name"]].append(line[0])
-            dict_res["views"].append(line[1])
-
-        df = pd.DataFrame.from_dict(dict_res)
-
-        fig = px.line(df, x=conf_graph["x_name"], y="views", template="plotly_dark")
-        fig.update_layout(
-            title=dict(
-                text=conf_graph["title"],
-                x=0.5,
-                font=dict(size=23),
-            ),
-            xaxis=dict(tickfont=dict(size=22), titlefont=dict(size=22)),
-            yaxis=dict(tickfont=dict(size=22), titlefont=dict(size=22)),
-        )
-        fig.write_image(path_save_graph)
 
     def execute(self, context: Context) -> None:
         self._check_args()
@@ -307,5 +217,3 @@ class Analysis(BaseOperator):
 
         with open(path_save_data, "w") as f:
             json.dump(data, f, ensure_ascii=False)
-
-        self._create_graphs(actual_date=actual_date, path_save=path_save)

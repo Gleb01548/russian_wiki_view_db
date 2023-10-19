@@ -28,8 +28,6 @@ class АggregationLoadPostgres(BaseOperator):
         self.query_type = query_type
         self.n_pages = n_pages
 
-        self._check_args()
-
     def _check_args(self):
         if self.date_period_type not in ["day", "week", "month", "year"]:
             raise AirflowException("Неверный тип аргумента date_period_type")
@@ -55,6 +53,7 @@ class АggregationLoadPostgres(BaseOperator):
         return pendulum.from_format(actual_date, "YYYY-MM-DD").add(days=-6)
 
     def execute(self, context: Context) -> None:
+        self._check_args()
         actual_date = self._find_actual_date(context)
         # if self.date_period_type == "week":
         #     prior_date = self._find_prior(actual_date)
@@ -84,7 +83,7 @@ class АggregationLoadPostgres(BaseOperator):
                  from  (
                         select page_name,
                         SUM(page_view_count) as page_view_sum,
-                        date_trunc('{self.date_period_type}', datetime) as date
+                        date_trunc('{self.date_period_type}', '{actual_date}'::date) as date
                         from data_views_{self.domain_code}
                         where date_trunc('{self.date_period_type}', datetime) =
                         date_trunc('{self.date_period_type}', '{actual_date}'::date)
@@ -98,7 +97,7 @@ class АggregationLoadPostgres(BaseOperator):
                 INSERT INTO postgres_sum_views_{self.domain_code}
                  (page_view_sum, date, date_period_type)
                  select sum(page_view_count) as page_view_sum,
-                        DATE_TRUNC('{self.date_period_type}', datetime),
+                        date_trunc('{self.date_period_type}', '{actual_date}'::date),
                         '{self.date_period_type}'
                  from data_views_{self.domain_code}
                  where date_trunc('{self.date_period_type}', datetime) =
