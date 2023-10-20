@@ -59,13 +59,15 @@ class Analysis(BaseOperator):
             .format("YYYY-MM-DD")
         )
 
-    def _create_graphs(self, actual_date: str, path_save: str):
+    def _create_graphs(
+        self, actual_date: str, path_save: str, actual_date_for_path_save: str
+    ):
         path_save = os.path.join(path_save, "graphs")
         pathlib.Path(path_save).mkdir(parents=True, exist_ok=True)
 
         path_save_graph = os.path.join(
             path_save,
-            f"graph_linear_{self.date_period_type}_{actual_date}_{self.domain_code}.png",
+            f"graph_linear_{self.date_period_type}_{actual_date_for_path_save}_{self.domain_code}.png",
         )
 
         logging.info(actual_date)
@@ -153,8 +155,15 @@ class Analysis(BaseOperator):
             str(pendulum.from_format(actual_date, "YYYY-MM-DD").year),
         )
         pathlib.Path(path_save).mkdir(parents=True, exist_ok=True)
+        actual_date_for_path_save = (
+            pendulum.from_format(actual_date, "YYYY-MM-DD")
+            .start_of(self.date_period_type)
+            .to_date_string()
+        )
+
         path_save_data = os.path.join(
-            path_save, f"{self.date_period_type}_{actual_date}_{self.domain_code}.json"
+            path_save,
+            f"{self.date_period_type}_{actual_date_for_path_save}_{self.domain_code}.json",
         )
 
         query_actual_data = f"""
@@ -277,7 +286,7 @@ class Analysis(BaseOperator):
         else:
             views_increment_percent = None
 
-        data["views"]["sum_views_actual"] = sum_views_actual
+        data["views"]["sum_views_actual"] = round(sum_views_actual / 10**6, 2)
         data["views"]["views_increment_percent"] = views_increment_percent
 
         for row in actual_data:
@@ -308,4 +317,8 @@ class Analysis(BaseOperator):
         with open(path_save_data, "w") as f:
             json.dump(data, f, ensure_ascii=False)
 
-        self._create_graphs(actual_date=actual_date, path_save=path_save)
+        self._create_graphs(
+            actual_date=actual_date,
+            path_save=path_save,
+            actual_date_for_path_save=actual_date_for_path_save,
+        )

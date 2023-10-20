@@ -19,6 +19,7 @@ from wikiviews.postgresql_to_clickhouse import PostgresqlToClickhouse
 from wikiviews.create_table_if_not_exists import CreateTableIFNotExists
 from wikiviews.aggregation_load_postgres import АggregationLoadPostgres
 from wikiviews.analysis import Analysis
+from wikiviews.translate import Translate
 
 
 from constants import (
@@ -44,8 +45,8 @@ path_analysis_save = os.path.join(
 
 default_args = {
     "wait_for_downstream": True,
-    "retries": 5,
-    "retry_delay": dt.timedelta(minutes=3),
+    "retries": 10,
+    "retry_delay": dt.timedelta(seconds=10),
     "execution_timeout": dt.timedelta(minutes=60),
     "end_date": pendulum.datetime(2021, 1, 1),
 }
@@ -107,20 +108,20 @@ make_scripts_load = MakeScriptsLoad(
 )
 
 
-@task_group(dag=dag, group_id="create_table")
-def create_table_group():
-    for domain_code, config in DOMAIN_CONFIG.items():
-        create_table = CreateTableIFNotExists(
-            task_id=f"create_table_{domain_code}",
-            config=config,
-            postgres_conn_id=PASTGRES_CONN_ID,
-            clickhouse_conn_id=CLICKHOUSE_CONN_ID,
-            dag=dag,
-        )
-        create_table
+# @task_group(dag=dag, group_id="create_table")
+# def create_table_group():
+#     for domain_code, config in DOMAIN_CONFIG.items():
+#         create_table = CreateTableIFNotExists(
+#             task_id=f"create_table_{domain_code}",
+#             config=config,
+#             postgres_conn_id=PASTGRES_CONN_ID,
+#             clickhouse_conn_id=CLICKHOUSE_CONN_ID,
+#             dag=dag,
+#         )
+#         create_table
 
 
-create_table_group = create_table_group()
+# create_table_group = create_table_group()
 
 
 groups_load_to_postgres = []
@@ -311,6 +312,38 @@ for domain_code, config in DOMAIN_CONFIG.items():
             dag=dag,
         )
 
+        translate_day = Translate(
+            task_id="translate_day",
+            config=config,
+            date_period_type="day",
+            path_save=path_analysis_save,
+            path_load_data=path_analysis_save,
+        )
+
+        translate_week = Translate(
+            task_id="translate_week",
+            config=config,
+            date_period_type="week",
+            path_save=path_analysis_save,
+            path_load_data=path_analysis_save,
+        )
+
+        translate_month = Translate(
+            task_id="translate_month",
+            config=config,
+            date_period_type="month",
+            path_save=path_analysis_save,
+            path_load_data=path_analysis_save,
+        )
+
+        translate_year = Translate(
+            task_id="translate_year",
+            config=config,
+            date_period_type="year",
+            path_save=path_analysis_save,
+            path_load_data=path_analysis_save,
+        )
+
         (load_to_postgres >> time_check >> [postgres_to_clickhouse, not_end_day])
 
         postgres_to_clickhouse >> [
@@ -334,12 +367,17 @@ for domain_code, config in DOMAIN_CONFIG.items():
         [aggregation_date_month, sum_views_month] >> analysis_month
         [aggregation_date_year, sum_views_year] >> analysis_year
 
+        analysis_day >> translate_day
+        analysis_week >> translate_week
+        analysis_month >> translate_month
+        analysis_year >> translate_year
+
     groups_load_to_postgres.append(load_to_postgres_trigger_clickhouse())
 
 
 (
     сheck_data
-    >> create_table_group
+    # >> create_table_group
     >> get_data
     >> make_scripts_load
     >> [task for task in groups_load_to_postgres]

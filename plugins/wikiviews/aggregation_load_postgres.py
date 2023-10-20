@@ -36,13 +36,6 @@ class АggregationLoadPostgres(BaseOperator):
             raise AirflowException("Неверный тип аргумента query_type")
 
     def _find_actual_date(self, context: Context):
-        # period_format = {
-        #     "day": "YYYY-MM-DD",
-        #     "week": "YYYY-MM-DD",
-        #     "month": "YYYY-MM-01",
-        #     "year": "YYYY-01-01",
-        # }
-
         return (
             context["data_interval_start"]
             .add(hours=self.time_correction)
@@ -55,18 +48,6 @@ class АggregationLoadPostgres(BaseOperator):
     def execute(self, context: Context) -> None:
         self._check_args()
         actual_date = self._find_actual_date(context)
-        # if self.date_period_type == "week":
-        #     prior_date = self._find_prior(actual_date)
-        # else:
-        #     prior_date = None
-
-        # if prior_date:
-        #     condition = f"BETWEEN '{prior_date}' AND '{actual_date}'"
-        #     date_for_sum_views = prior_date
-        # else:
-        #     condition = f"= '{actual_date}'"
-        #     date_for_sum_views = actual_date
-
         logging.info(actual_date)
 
         tg_hook = ClickHouseHook(clickhouse_conn_id=self.clickhouse_conn_id)

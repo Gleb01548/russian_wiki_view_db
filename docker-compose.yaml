@@ -64,6 +64,10 @@ x-airflow-common:
     AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: 'true'
     AIRFLOW__CORE__LOAD_EXAMPLES: 'false'
     AIRFLOW__API__AUTH_BACKENDS: 'airflow.api.auth.backend.basic_auth,airflow.api.auth.backend.session'
+    AIRFLOW__CORE__PARALLELISM: 100
+    AIRFLOW__CORE__DAG_CONCURRENCY: 75
+    AIRFLOW__CELERY__WORKER_CONCURRENCY: 100
+    AIRFLOW__CORE__MAX_ACTIVE_RUNS_PER_DAG: 3
     # yamllint disable rule:line-length
     # Use simple http server on scheduler for health checks
     # See https://airflow.apache.org/docs/apache-airflow/stable/administration-and-deployment/logging-monitoring/check-health.html#scheduler-health-check-server
@@ -98,6 +102,8 @@ services:
   postgres:
     image: postgres:13
     container_name: russian_wiki_postgres_airflow
+    cpus: 7
+    command: postgres -c 'config_file=/etc/postgresql/postgresql.conf'
     environment:
       POSTGRES_USER: airflow
       POSTGRES_PASSWORD: airflow
@@ -106,18 +112,22 @@ services:
       - default
     volumes:
       - ./airflow_db:/var/lib/postgresql/data
+      - ${AIRFLOW_PROJ_DIR:-.}/postgres_config/postgresql_airflow.conf:/etc/postgresql/postgresql.conf 
     healthcheck:
-      test: ["CMD", "pg_isready", "-U", "airflow"]
+      test: ["CMD", "pg_isready", "-U", "wiki_views"]
       interval: 10s
       retries: 5
       start_period: 5s
     restart: always
+    ports:
+      - 5534:5432
   
   postgres_work:
     image: postgres:16
     container_name: russian_wiki_postgres_work
-    cpus: 8
-    mem_limit: 16g
+    command: postgres -c 'config_file=/etc/postgresql/postgresql.conf'
+    cpus: 12
+    mem_limit: 32g
     environment:
       POSTGRES_USER: airflow
       POSTGRES_PASSWORD: airflow
@@ -126,6 +136,7 @@ services:
       - default
     volumes:
       - ${AIRFLOW_PROJ_DIR:-.}/database/postgres_data:/var/lib/postgresql/data
+      - ${AIRFLOW_PROJ_DIR:-.}/postgres_config/postgresql.conf:/etc/postgresql/postgresql.conf 
     healthcheck:
       test: ["CMD", "pg_isready", "-U", "airflow"]
       interval: 10s
@@ -190,6 +201,7 @@ services:
     <<: *airflow-common
     container_name: russian_wiki_scheduler
     command: scheduler
+    cpus: 8
     healthcheck:
       test: ["CMD", "curl", "--fail", "http://localhost:8974/health"]
       interval: 30s
@@ -215,11 +227,14 @@ services:
       timeout: 10s
       retries: 5
       start_period: 30s
+    cpus: 12
     environment:
       <<: *airflow-common-env
       # Required to handle warm shutdown of the celery workers properly
       # See https://airflow.apache.org/docs/docker-stack/entrypoint.html#signal-propagation
       DUMB_INIT_SETSID: "0"
+    ports:
+      - "8238:8238"
     restart: always
     depends_on:
       <<: *airflow-common-depends-on
@@ -229,6 +244,7 @@ services:
   airflow-triggerer:
     <<: *airflow-common
     command: triggerer
+    cpus: 8
     healthcheck:
       test: ["CMD-SHELL", 'airflow jobs check --job-type TriggererJob --hostname "$${HOSTNAME}"']
       interval: 30s
