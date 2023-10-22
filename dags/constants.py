@@ -54,19 +54,19 @@ DOMAIN_CONFIG = {
                 "Разница с прошедшим периодом ({{ date_period_type }}).\n"
                 "\n"
                 "Новые страницы в топе:\n"
-                "{{ col1 }}{{ col2 }}{{ col3 }}{{ col4 }}{{ col4 }}{{ col5 }}{{ col6 }}{{ col7 }}"  # noqa
+                "{{ col1 }}{{ col2 }}{{ col3 }}{{ col4 }}{{ col5 }}{{ col6 }}{{ col7 }}"  # noqa
                 "{{ pages_data }}"
             ),  # noqa
             "message_go_out_pages": (
                 "{{ wikipedia_segment }}\n"
                 "Страницы которые вышли из топа:\n"
-                "{{ col1 }}{{ col2 }}{{ col3 }}{{ col4 }}{{ col4 }}{{ col5 }}{{ col6 }}{{ col7 }}"  # noqa
+                "{{ col1 }}{{ col2 }}{{ col3 }}{{ col4 }}{{ col5 }}{{ col6 }}{{ col7 }}"  # noqa
                 "{{ pages_data }}"
             ),  # noqa
             "message_difference_pages": (
                 "{{ wikipedia_segment }}\n"
                 "Изминения среди тех страниц, которые в топе остались:\n"
-                "{{ col1 }}{{ col2 }}{{ col3 }}{{ col4 }}{{ col4 }}{{ col5 }}{{ col6 }}{{ col7 }}"  # noqa
+                "{{ col1 }}{{ col2 }}{{ col3 }}{{ col4 }}{{ col5 }}{{ col6 }}{{ col7 }}"  # noqa
                 "{{ pages_data }}"
             ),
         },
@@ -243,6 +243,10 @@ DOMAIN_CONFIG = {
         "wikipedia_segment": "🇷🇸Serbian🇷🇸",
     },  # сербский
 }
+
+SEND_MESSAGES = [
+    key for key in DOMAIN_CONFIG.keys() if DOMAIN_CONFIG[key]["send_massages"]
+]
 
 target = [
     (value["resourse"], value["domain_code"])

@@ -53,7 +53,7 @@ class CreateMessage(BaseOperator):
     def _pages_data(self, data: dict, translate: bool, stay_in_top: bool):
         pages_data = ""
         for i, page_name in enumerate(data["page_name"]):
-            pages_data += "/n"
+            pages_data += "\n"
             if translate:
                 page_name = f'{data["page_translation"][i]} | {page_name}'
 
@@ -187,7 +187,7 @@ class CreateMessage(BaseOperator):
             ],
             ["TopNow", "NewInTop", "GoOut", "Diff"],
         ):
-            text += "/n"
+            text += "\n\n\n"
             text += tags
             text += f" #{message_settings['day_of_week_translate'][day_of_week]}"
             text += f" #{message_settings['date_period_type_translate'][self.date_period_type]}"
@@ -200,7 +200,7 @@ class CreateMessage(BaseOperator):
             file_save_path = os.path.join(path_save, file_name)
 
             with open(file_save_path, "w") as f:
-                json.dump(text, f, ensure_ascii=False)
+                f.write(text)
 
     def execute(self, context: Context) -> None:
         self._check_args()
@@ -237,6 +237,12 @@ class CreateMessage(BaseOperator):
             )
             context["ti"].xcom_push(
                 key=f"{self.domain_code}_{self.date_period_type}", value=True
+            )
+            print(
+                context["ti"].xcom_pull(
+                    task_ids=f"load_to_postgres_trigger_clickhouse_{self.domain_code}.message_day",
+                    key="en_day",
+                )
             )
         for _, code in self.languages_target:
             target_config = self.global_config[code]
