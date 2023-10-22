@@ -16,10 +16,10 @@ from airflow.decorators import task_group
 from wikiviews.make_scripts_load import MakeScriptsLoad
 from wikiviews.load_postgres import LoadPostgres
 from wikiviews.postgresql_to_clickhouse import PostgresqlToClickhouse
-from wikiviews.create_table_if_not_exists import CreateTableIFNotExists
 from wikiviews.aggregation_load_postgres import АggregationLoadPostgres
 from wikiviews.analysis import Analysis
 from wikiviews.translate import Translate
+from wikiviews.create_massage import CreateMessage
 
 
 from constants import (
@@ -106,22 +106,6 @@ make_scripts_load = MakeScriptsLoad(
     path_save_script=path_save_script,
     dag=dag,
 )
-
-
-# @task_group(dag=dag, group_id="create_table")
-# def create_table_group():
-#     for domain_code, config in DOMAIN_CONFIG.items():
-#         create_table = CreateTableIFNotExists(
-#             task_id=f"create_table_{domain_code}",
-#             config=config,
-#             postgres_conn_id=PASTGRES_CONN_ID,
-#             clickhouse_conn_id=CLICKHOUSE_CONN_ID,
-#             dag=dag,
-#         )
-#         create_table
-
-
-# create_table_group = create_table_group()
 
 
 groups_load_to_postgres = []
@@ -245,9 +229,8 @@ for domain_code, config in DOMAIN_CONFIG.items():
             task_id="not_end_week_month_year", dag=dag
         )
 
-        def _check_end_week_month_year(config: dict, **context):
+        def _check_end_week_month_year(time_correction: dict, **context):
             list_branches = []
-            time_correction = config["time_correction"]
 
             data_interval_start = context["data_interval_start"].add(
                 hours=time_correction
@@ -269,7 +252,7 @@ for domain_code, config in DOMAIN_CONFIG.items():
         check_end_week_month_year = BranchPythonOperator(
             task_id="check_end_week_month_year",
             python_callable=_check_end_week_month_year,
-            op_args=[config],
+            op_args=[config["time_correction"]],
         )
 
         analysis_day = Analysis(
@@ -344,6 +327,38 @@ for domain_code, config in DOMAIN_CONFIG.items():
             path_load_data=path_analysis_save,
         )
 
+        message_day = CreateMessage(
+            task_id="message_day",
+            config=config,
+            global_config=DOMAIN_CONFIG,
+            path_save=path_analysis_save,
+            date_period_type="day",
+        )
+
+        message_week = CreateMessage(
+            task_id="message_week",
+            config=config,
+            global_config=DOMAIN_CONFIG,
+            path_save=path_analysis_save,
+            date_period_type="week",
+        )
+
+        message_month = CreateMessage(
+            task_id="message_month",
+            config=config,
+            global_config=DOMAIN_CONFIG,
+            path_save=path_analysis_save,
+            date_period_type="month",
+        )
+
+        message_year = CreateMessage(
+            task_id="message_year",
+            config=config,
+            global_config=DOMAIN_CONFIG,
+            path_save=path_analysis_save,
+            date_period_type="year",
+        )
+
         (load_to_postgres >> time_check >> [postgres_to_clickhouse, not_end_day])
 
         postgres_to_clickhouse >> [
@@ -371,6 +386,11 @@ for domain_code, config in DOMAIN_CONFIG.items():
         analysis_week >> translate_week
         analysis_month >> translate_month
         analysis_year >> translate_year
+
+        translate_day >> message_day
+        translate_week >> message_week
+        translate_month >> message_month
+        translate_year >> message_year
 
     groups_load_to_postgres.append(load_to_postgres_trigger_clickhouse())
 

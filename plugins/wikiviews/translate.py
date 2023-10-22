@@ -48,8 +48,8 @@ class Translate(BaseOperator):
     ):
         url = "http://192.168.0.124:8239/translate"
 
-        for target in self.languages_target:
-            file_save_name = f"{self.language_resourse}_{target}__{file_load_name}.json"
+        for target, code in self.languages_target:
+            file_save_name = f"{self.domain_code}_{code}__{file_load_name}"
             path_save_data = os.path.join(
                 self.path_save, self.domain_code, year, "translations"
             )

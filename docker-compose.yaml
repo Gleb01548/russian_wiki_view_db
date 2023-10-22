@@ -164,6 +164,18 @@ services:
       - 1823:8123
       - 1905:9000
   
+  translate:
+    build: translation/.
+    container_name: russian_wiki_translate
+    networks:
+      - default
+    volumes:
+      - ./data/cache/:/cache
+      - ./app.py:/app.py
+    env_file:
+      - .env
+
+  
   redis:
     image: redis:latest
     container_name: russian_wiki_redis

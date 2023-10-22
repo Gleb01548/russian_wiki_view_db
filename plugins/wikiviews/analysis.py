@@ -40,11 +40,13 @@ class Analysis(BaseOperator):
             raise AirflowException("Неверный тип аргумента date_period_type")
 
     def _find_actual_date(self, context: Context):
-        return (
+        actual_date = (
             context["data_interval_start"]
             .add(hours=self.time_correction)
-            .format("YYYY-MM-DD")
+            .start_of(self.date_period_type)
         )
+
+        return str(actual_date.year), actual_date.format("YYYY-MM-DD")
 
     def _find_prior_date(self, actual_date: str):
         period_arg = {
@@ -56,18 +58,17 @@ class Analysis(BaseOperator):
         return (
             pendulum.from_format(actual_date, "YYYY-MM-DD")
             .add(**period_arg[self.date_period_type])
+            .start_of(self.date_period_type)
             .format("YYYY-MM-DD")
         )
 
-    def _create_graphs(
-        self, actual_date: str, path_save: str, actual_date_for_path_save: str
-    ):
+    def _create_graphs(self, actual_date: str, path_save: str):
         path_save = os.path.join(path_save, "graphs")
         pathlib.Path(path_save).mkdir(parents=True, exist_ok=True)
 
         path_save_graph = os.path.join(
             path_save,
-            f"graph_linear_{self.date_period_type}_{actual_date_for_path_save}_{self.domain_code}.png",
+            f"graph_linear_{self.date_period_type}_{actual_date}_{self.domain_code}.png",
         )
 
         logging.info(actual_date)
@@ -76,35 +77,35 @@ class Analysis(BaseOperator):
             "day": {
                 "date_func": "HOUR",
                 "x_name": "hours",
-                "divisor": 1000,
+                "divisor": 10**3,
                 "title": f"Number of views for the last day ({actual_date}) in thousands",
             },
             "week": {
                 "date_func": "DAYOFWEEK",
                 "x_name": "days",
-                "divisor": 1000000,
+                "divisor": 10**6,
                 "title": (
                     "Number of views for the last week "
-                    f"""({pendulum.from_format(actual_date, "YYYY-MM-DD").start_of('week').format("YYYY-MM-DD")})"""
+                    f"""({actual_date})"""
                     " in millions"
                 ),
             },
             "month": {
                 "date_func": "DAYOFMONTH",
                 "x_name": "days",
-                "divisor": 1000000,
+                "divisor": 10**6,
                 "title": (
                     "Number of views for the last month "
-                    f"""({pendulum.from_format(actual_date, "YYYY-MM-DD").format("YYYY-MM")}) in millions"""
+                    f"""({actual_date}) in millions"""
                 ),
             },
             "year": {
                 "date_func": "MONTH",
                 "x_name": "months",
-                "divisor": 1000000,
+                "divisor": 10**6,
                 "title": (
                     "Number of views for the last year "
-                    f"""({pendulum.from_format(actual_date, "YYYY-MM-DD").format("YYYY")}) in millions"""
+                    f"""({actual_date}) in millions"""
                 ),
             },
         }
@@ -116,7 +117,7 @@ class Analysis(BaseOperator):
             round(SUM(page_view_count) / {conf_graph["divisor"]}, 2) as views
         from data_views_{self.domain_code}
         where date_trunc('{self.date_period_type}', datetime)
-        = date_trunc('{self.date_period_type}', '{actual_date}'::datetime)
+        = '{actual_date}'::datetime
         group by {conf_graph['date_func']}(datetime)
         order by {conf_graph['date_func']}(datetime);
         """
@@ -146,24 +147,19 @@ class Analysis(BaseOperator):
 
     def execute(self, context: Context) -> None:
         self._check_args()
-        actual_date = self._find_actual_date(context)
+        year, actual_date = self._find_actual_date(context)
         prior_date = self._find_prior_date(actual_date)
 
         path_save = os.path.join(
             self.path_save,
             self.domain_code,
-            str(pendulum.from_format(actual_date, "YYYY-MM-DD").year),
+            year,
         )
         pathlib.Path(path_save).mkdir(parents=True, exist_ok=True)
-        actual_date_for_path_save = (
-            pendulum.from_format(actual_date, "YYYY-MM-DD")
-            .start_of(self.date_period_type)
-            .to_date_string()
-        )
 
         path_save_data = os.path.join(
             path_save,
-            f"{self.date_period_type}_{actual_date_for_path_save}_{self.domain_code}.json",
+            f"{self.date_period_type}_{actual_date}_{self.domain_code}.json",
         )
 
         query_actual_data = f"""
@@ -172,7 +168,7 @@ class Analysis(BaseOperator):
             page_view_sum
             from analysis.{self.domain_code}
             where date_trunc('{self.date_period_type}', date)
-             = date_trunc('{self.date_period_type}', '{actual_date}'::date)
+             = '{actual_date}'::date
             and date_period_type = '{self.date_period_type}'
         """
 
@@ -181,7 +177,7 @@ class Analysis(BaseOperator):
             select *
             from analysis.{self.domain_code}
             where date_trunc('{self.date_period_type}', date)
-             = date_trunc('{self.date_period_type}', '{actual_date}'::date)
+             = '{actual_date}'::date
             and date_period_type = '{self.date_period_type}'
             ),
 
@@ -189,7 +185,7 @@ class Analysis(BaseOperator):
             select *
             from analysis.{self.domain_code}
             where date_trunc('{self.date_period_type}', date)
-             = date_trunc('{self.date_period_type}', '{prior_date}'::date)
+             = '{prior_date}'::date
             and date_period_type = '{self.date_period_type}'
             )
             """
@@ -228,22 +224,25 @@ class Analysis(BaseOperator):
                 page_name,
                 rank_actual,
                 rank_past,
-                ROUND(increment_percent::numeric, 2)::float		
+                ROUND(increment_percent::numeric, 2)::float,
+                page_view_sum
         from (
         select t1.page_name as page_name, 
         t1.rank as rank_actual, 
         t2.rank as rank_past,
-        (t1.page_view_sum - t2.page_view_sum)::float/t2.page_view_sum * 100 as increment_percent
+        (t1.page_view_sum - t2.page_view_sum)::float/t2.page_view_sum * 100 as increment_percent, 
+        t1.page_view_sum as page_view_sum
         from tab1 as t1
         inner join tab2 t2 on t1.page_name = t2.page_name
         order by t1.rank) as tab3
+        order by ROUND(increment_percent::numeric, 2)::float
         """  # noqa
 
         query_sum_views_actual = f"""
         select page_view_sum
         from sum_views.{self.domain_code}
         where date_trunc('{self.date_period_type}', date)
-            = date_trunc('{self.date_period_type}', '{actual_date}'::date)
+            = '{actual_date}'::date
         and date_period_type = '{self.date_period_type}'
         """
 
@@ -251,7 +250,7 @@ class Analysis(BaseOperator):
         select page_view_sum
         from sum_views.{self.domain_code}
         where date_trunc('{self.date_period_type}', date)
-            = date_trunc('{self.date_period_type}', '{prior_date}'::date)
+            = '{prior_date}'::date
         and date_period_type = '{self.date_period_type}'
         """
 
@@ -266,6 +265,7 @@ class Analysis(BaseOperator):
                 "rank_actual": [],
                 "rank_past": [],
                 "increment_percent": [],
+                "page_view_sum": [],
             },
         }
 
@@ -285,8 +285,12 @@ class Analysis(BaseOperator):
             )
         else:
             views_increment_percent = None
+        if self.date_period_type == "day":
+            degree = 3
+        else:
+            degree = 6
 
-        data["views"]["sum_views_actual"] = round(sum_views_actual / 10**6, 2)
+        data["views"]["sum_views_actual"] = round(sum_views_actual / 10**degree, 2)
         data["views"]["views_increment_percent"] = views_increment_percent
 
         for row in actual_data:
@@ -310,6 +314,7 @@ class Analysis(BaseOperator):
                     "rank_actual",
                     "rank_past",
                     "increment_percent",
+                    "page_view_sum",
                 ],
             ):
                 data["stay_in_top"][key].append(value)
@@ -317,8 +322,4 @@ class Analysis(BaseOperator):
         with open(path_save_data, "w") as f:
             json.dump(data, f, ensure_ascii=False)
 
-        self._create_graphs(
-            actual_date=actual_date,
-            path_save=path_save,
-            actual_date_for_path_save=actual_date_for_path_save,
-        )
+        self._create_graphs(actual_date=actual_date, path_save=path_save)

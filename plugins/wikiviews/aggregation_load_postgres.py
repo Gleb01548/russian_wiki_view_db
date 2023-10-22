@@ -36,11 +36,13 @@ class АggregationLoadPostgres(BaseOperator):
             raise AirflowException("Неверный тип аргумента query_type")
 
     def _find_actual_date(self, context: Context):
-        return (
+        actual_date = (
             context["data_interval_start"]
             .add(hours=self.time_correction)
-            .format("YYYY-MM-DD")
+            .start_of(self.date_period_type)
         )
+
+        return actual_date.format("YYYY-MM-DD")
 
     def _find_prior(self, actual_date):
         return pendulum.from_format(actual_date, "YYYY-MM-DD").add(days=-6)
@@ -64,11 +66,11 @@ class АggregationLoadPostgres(BaseOperator):
                  from  (
                         select page_name,
                         SUM(page_view_count) as page_view_sum,
-                        date_trunc('{self.date_period_type}', '{actual_date}'::date) as date
+                        '{actual_date}'::date as date
                         from data_views_{self.domain_code}
                         where date_trunc('{self.date_period_type}', datetime) =
-                        date_trunc('{self.date_period_type}', '{actual_date}'::date)
-                        group by page_name, date_trunc('{self.date_period_type}', datetime)
+                        '{actual_date}'::date
+                        group by page_name, '{actual_date}'::date
                         order by page_view_sum desc
                         limit {self.n_pages}
                 ) as tb1;
@@ -78,12 +80,12 @@ class АggregationLoadPostgres(BaseOperator):
                 INSERT INTO postgres_sum_views_{self.domain_code}
                  (page_view_sum, date, date_period_type)
                  select sum(page_view_count) as page_view_sum,
-                        date_trunc('{self.date_period_type}', '{actual_date}'::date),
+                        '{actual_date}'::date as date,
                         '{self.date_period_type}'
                  from data_views_{self.domain_code}
                  where date_trunc('{self.date_period_type}', datetime) =
-                 date_trunc('{self.date_period_type}', '{actual_date}'::date)
-                 group by  date_trunc('{self.date_period_type}', datetime);
+                 '{actual_date}'::date
+                 group by '{actual_date}'::date;
                 """
 
         tg_hook.execute(script)

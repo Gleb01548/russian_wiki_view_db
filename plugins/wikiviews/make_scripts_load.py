@@ -22,6 +22,12 @@ class MakeScriptsLoad(BaseOperator):
         self.path_dz_file = path_dz_file
         self.path_save_script = path_save_script
 
+    def _xcom_push(self, domain_code, **context):
+        for date_period_type in ["day", "week", "month", "year"]:
+            context["ti"].xcom_push(
+                key=f"{domain_code}_{date_period_type}", value=False
+            )
+
     def execute(self, context: Context) -> None:
         actual_time = {
             domain_code: context["data_interval_start"]
@@ -55,3 +61,4 @@ class MakeScriptsLoad(BaseOperator):
                         f"('{pagename[:2000]}', '{page_view_count}',"
                         f" '{actual_time[domain_code]}'){symbol}"
                     )
+            self._xcom_push(domain_code, **context)
