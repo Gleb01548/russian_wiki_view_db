@@ -1,0 +1,81 @@
+import os
+import datetime as dt
+import time
+
+import pendulum
+from airflow import DAG
+from airflow.providers.postgres.operators.postgres import PostgresOperator
+from russian_wiki.message_in_telegram import MessegeTelegramNViews
+from russian_wiki.postgresql_to_clickhouse import PostgresqlToClickhouse
+from airflow.operators.python import PythonOperator
+from airflow.operators.trigger_dagrun import TriggerDagRunOperator
+from airflow.operators.empty import EmptyOperator
+
+
+default_args = {
+    "wait_for_downstream": True,
+    "retries": 5,
+    "retry_delay": dt.timedelta(minutes=3),
+    "execution_timeout": dt.timedelta(minutes=60),
+    "depends_on_past": True,
+}
+
+
+dag_1 = DAG(
+    dag_id="dag_1",
+    start_date=dt.datetime(2022, 1, 1),
+    end_date=pendulum.now("UTC"),
+    schedule_interval="@hourly",
+    tags=["test", "trigger"],
+    default_args=default_args,
+)
+
+dag_2 = DAG(
+    dag_id="dag_2",
+    start_date=dt.datetime(2022, 1, 1),
+    end_date=pendulum.now("UTC"),
+    schedule_interval="@hourly",
+    tags=["test", "trigger"],
+    default_args=default_args,
+)
+
+dag_3 = DAG(
+    dag_id="dag_3",
+    start_date=dt.datetime(2022, 1, 1),
+    end_date=pendulum.now("UTC"),
+    schedule_interval="@hourly",
+    tags=["test", "trigger"],
+    default_args=default_args,
+)
+
+dag_trigered = DAG(
+    dag_id="dag_trigered",
+    start_date=dt.datetime(2021, 1, 1),
+    end_date=pendulum.now("UTC"),
+    schedule_interval=None,
+    tags=["test", "triggered"],
+    default_args=default_args,
+)
+empty1 = EmptyOperator(task_id="task1", dag=dag_trigered)
+empty2 = EmptyOperator(task_id="task2", dag=dag_trigered)
+
+
+def _time_sleep():
+    time.sleep(120)
+
+
+time_sleep = PythonOperator(
+    task_id="sleep", dag=dag_trigered, python_callable=_time_sleep
+)
+
+empty1 >> empty2 >> time_sleep
+
+for index, dag_ in enumerate([dag_1, dag_2, dag_3]):
+    empty1 = EmptyOperator(task_id=f"task1_{index}", dag=dag_)
+    empty2 = EmptyOperator(task_id=f"task2_{index}", dag=dag_)
+
+    trigger = TriggerDagRunOperator(
+        task_id="trigger", trigger_dag_id="dag_trigered", dag=dag_
+    )
+
+    empty1 >> empty2

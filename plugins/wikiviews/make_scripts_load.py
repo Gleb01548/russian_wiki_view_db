@@ -1,3 +1,4 @@
+import gzip
 from airflow.models import BaseOperator
 from airflow.utils.context import Context
 
@@ -7,40 +8,48 @@ class MakeScriptsLoad(BaseOperator):
     Подгатавливает скрипты для загрузки данных в postgres
     """
 
-    template_fields = ("file_load_path",)
+    template_fields = ("path_dz_file",)
 
     def __init__(
         self,
-        domain_code_time_correct: dict,
-        file_load_path: str,
-        path_script_load_data: str,
+        domain_config: dict,
+        path_dz_file: str,
+        path_save_script: str,
         **kwargs,
     ):
         super().__init__(**kwargs)
-        self.domain_code_time_correct = domain_code_time_correct
-        self.file_load_path = file_load_path
-        self.path_script_load_data = path_script_load_data
+        self.domain_config = domain_config
+        self.path_dz_file = path_dz_file
+        self.path_save_script = path_save_script
+
+    def _xcom_push(self, domain_code, **context):
+        for date_period_type in ["day", "week", "month", "year"]:
+            context["ti"].xcom_push(
+                key=f"{domain_code}_{date_period_type}", value=False
+            )
 
     def execute(self, context: Context) -> None:
         actual_time = {
             domain_code: context["data_interval_start"]
-            .add(hours=time_correction)
+            .add(hours=config["time_correction"])
             .to_atom_string()
-            for domain_code, time_correction in self.domain_code_time_correct.items()
+            for domain_code, config in self.domain_config.items()
         }
-        result = {
-            domain_code: {} for domain_code in self.domain_code_time_correct.keys()
-        }
-        with open(self.file_load_path, "r") as f:
-            for line in f:
-                domain_code, page_title, view_counts, _ = line.split(" ")
-                if domain_code in result:
-                    result[domain_code][page_title] = view_counts
+        result = {domain_code: {} for domain_code in self.domain_config.keys()}
+
+        with gzip.open(self.path_dz_file, "r") as f:
+            bytes_data = f.read()
+            data = bytes_data.decode("utf-8").removesuffix("\n").split("\n")
+
+        for line in data:
+            domain_code, page_title, view_counts, _ = line.split(" ")
+            if domain_code in result:
+                result[domain_code][page_title] = view_counts
 
         for domain_code in result.keys():
-            with open(f"{self.path_script_load_data}_{domain_code}{'.sql'}", "w") as f:
+            with open(f"{self.path_save_script}_{domain_code}.sql", "w") as f:
                 f.write(
-                    "insert into resource.data_views (page_name, page_view_count, datetime, domain_code) values"
+                    f"insert into resource.{domain_code} (page_name, page_view_count, datetime) values"
                 )
                 max_index = len(result[domain_code]) - 1
                 for index, (pagename, page_view_count) in enumerate(
@@ -50,5 +59,6 @@ class MakeScriptsLoad(BaseOperator):
                     pagename = pagename.replace("'", "''")
                     f.write(
                         f"('{pagename[:2000]}', '{page_view_count}',"
-                        f" '{actual_time[domain_code]}', '{domain_code}'){symbol}"
+                        f" '{actual_time[domain_code]}'){symbol}"
                     )
+            self._xcom_push(domain_code, **context)
