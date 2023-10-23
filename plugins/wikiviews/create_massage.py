@@ -209,10 +209,6 @@ class CreateMessage(BaseOperator):
         )
         path_data = os.path.join(self.path_save, self.domain_code, year)
 
-        tags = " ".join(self.config["tags"])
-        for tag in [year, month, day]:
-            tags += f" #{tag}"
-
         mark_to_send_message = False
 
         if self.send_massages:
@@ -222,6 +218,10 @@ class CreateMessage(BaseOperator):
 
             path_save_message = os.path.join(path_data, "messages", actual_date)
             pathlib.Path(path_save_message).mkdir(parents=True, exist_ok=True)
+
+            tags = " ".join(self.config["tags"])
+            for tag, period in zip([year, month, day], ["year", "month", "day"]):
+                tags += f" #period_{self.config['message_settings']['date_period_type_translate'][period]}_{tag}"
 
             with open(path_load_data) as f:
                 data = json.load(f)
@@ -259,6 +259,10 @@ class CreateMessage(BaseOperator):
 
                 with open(path_load_data) as f:
                     data = json.load(f)
+
+                tags = " ".join(self.config["tags"])
+                for tag, period in zip([year, month, day], ["year", "month", "day"]):
+                    tags += f" #period_{target_config['message_settings']['date_period_type_translate'][period]}_{tag}"
 
                 self._create_save_messages(
                     data=data,

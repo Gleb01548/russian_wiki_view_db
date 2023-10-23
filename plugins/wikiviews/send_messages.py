@@ -1,9 +1,11 @@
 import os
+import time
 
 from airflow.models import BaseOperator
 from airflow.utils.context import Context
 from airflow import AirflowException
 from telebot import TeleBot
+from telebot.apihelper import ApiTelegramException
 
 
 class SendMessages(BaseOperator):
@@ -46,10 +48,26 @@ class SendMessages(BaseOperator):
             # str(actual_date.day),
         )
 
-    def split_text(text: str):
+    def _split_text(self, text: str):
         text = text.split("\n")
         len_text = int(len(text) / 2)
         return "\n".join(text[:len_text]), "\n".join(text[len_text:])
+
+    def _send_message(self, chat_id, text):
+        try:
+            self.tg_bot.send_message(chat_id=chat_id, text=text)
+        except ApiTelegramException:
+            print("time.sleep")
+            time.sleep(30)
+            self.tg_bot.send_message(chat_id=chat_id, text=text)
+
+    def _send_photo(self, chat_id, photo):
+        try:
+            self.tg_bot.send_photo(chat_id=chat_id, photo=photo)
+        except ApiTelegramException:
+            print("time.sleep")
+            time.sleep(30)
+            self.tg_bot.send_photo(chat_id=chat_id, photo=photo)
 
     def send_message(self, path_message, path_graphs, actual_date):
         for message_type in ["TopNow", "NewInTop", "GoOut", "Diff"]:
@@ -66,22 +84,23 @@ class SendMessages(BaseOperator):
             message = open(path_text_name).read()
 
             for chat_id in self.chat_ids[self.sub_group_config["domain_code"]]:
+                chat_id = os.environ.get(chat_id)
                 if len(message) < 4096:
-                    self.tg_bot.send_message(chat_id=chat_id, text=message)
+                    self._send_message(chat_id=chat_id, text=message)
                 else:
-                    message_1, message_2 = self.split_text(message)
-                    self.tg_bot.send_message(chat_id=chat_id, text=message_1)
-                    self.tg_bot.send_message(chat_id=chat_id, text=message_2)
+                    message_1, message_2 = self._split_text(message)
+                    self._send_message(chat_id=chat_id, text=message_1[:4095])
+                    self._send_message(chat_id=chat_id, text=message_2[:4095])
 
                 if message_type == "TopNow":
                     file_graphs_name = (
                         "graph_linear_"
                         f"{self.date_period_type}_"
-                        f"{actual_date}"
-                        f"{self.sub_group_config['domain_code']}"
+                        f"{actual_date}_"
+                        f"{self.sub_group_config['domain_code']}.png"
                     )
                     path_name_graphs = os.path.join(path_graphs, file_graphs_name)
-                    self.tg_bot.send_photo(
+                    self._send_photo(
                         chat_id=chat_id, photo=open(path_name_graphs, "rb")
                     )
 
@@ -93,7 +112,7 @@ class SendMessages(BaseOperator):
             context, time_correction=self.sub_group_config["time_correction"]
         )
 
-        path_message = os.path(
+        path_message = os.path.join(
             self.path_save,
             self.group_config["domain_code"],
             year,
@@ -101,7 +120,7 @@ class SendMessages(BaseOperator):
             actual_date,
         )
 
-        path_graphs = os.path(
+        path_graphs = os.path.join(
             self.path_save,
             self.sub_group_config["domain_code"],
             year,

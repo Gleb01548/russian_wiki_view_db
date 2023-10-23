@@ -235,7 +235,7 @@ class Analysis(BaseOperator):
         from tab1 as t1
         inner join tab2 t2 on t1.page_name = t2.page_name
         order by t1.rank) as tab3
-        order by ROUND(increment_percent::numeric, 2)::float
+        order by ROUND(increment_percent::numeric, 2)::float DESC
         """  # noqa
 
         query_sum_views_actual = f"""

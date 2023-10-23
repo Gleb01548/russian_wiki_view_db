@@ -10,6 +10,7 @@ from airflow.operators.python import PythonOperator
 from airflow.operators.python import BranchPythonOperator
 from airflow.providers.postgres.operators.postgres import PostgresOperator
 from airflow.sensors.python import PythonSensor
+from airflow.operators.trigger_dagrun import TriggerDagRunOperator
 from urllib import request
 from airflow.decorators import task_group
 
@@ -52,15 +53,18 @@ default_args = {
 }
 
 dag = DAG(
-    dag_id="test_unzip_and_load_data_postgresql",
+    dag_id="wikipedia_views_load_and_processing",
     tags=[
         "test",
         "wikipedia_views",
         "unzip",
         "load_to_postgres",
+        "load_to_clikchouse",
+        "translation",
+        "make_messages",
     ],
     default_args=default_args,
-    start_date=pendulum.datetime(2020, 1, 1).add(days=-1),
+    start_date=pendulum.datetime(2020, 1, 1).add(days=1),
     schedule_interval="@hourly",
     template_searchpath=PATH_WORK_FILES,
 )
@@ -394,11 +398,20 @@ for domain_code, config in DOMAIN_CONFIG.items():
 
     groups_load_to_postgres.append(load_to_postgres_trigger_clickhouse())
 
+trigger_dag = TriggerDagRunOperator(
+    task_id="trigger_send_message",
+    trigger_dag_id="send_message",
+    execution_date="{{ data_interval_start }}",
+    reset_dag_run=True,
+    trigger_rule="none_failed",
+    dag=dag,
+)
 
 (
     сheck_data
     # >> create_table_group
     >> get_data
     >> make_scripts_load
-    >> [task for task in groups_load_to_postgres]
+    >> groups_load_to_postgres
+    >> trigger_dag
 )

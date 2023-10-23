@@ -65,7 +65,7 @@ DOMAIN_CONFIG = {
             ),  # noqa
             "message_difference_pages": (
                 "{{ wikipedia_segment }}\n"
-                "Изминения среди тех страниц, которые в топе остались:\n"
+                "Изменения среди тех страниц, которые в топе остались:\n"
                 "{{ col1 }}{{ col2 }}{{ col3 }}{{ col4 }}{{ col5 }}{{ col6 }}{{ col7 }}"  # noqa
                 "{{ pages_data }}"
             ),
@@ -76,9 +76,67 @@ DOMAIN_CONFIG = {
         "time_correction": -4,
         "resourse": "eng_Latn",
         "translate_other_languages": True,
-        "send_massages": False,
+        "send_massages": True,
         "tags": ["#english", "#en"],
         "wikipedia_segment": "🇺🇸🇬🇧English🇬🇧🇺🇸",
+        "message_settings": {
+            "numerical_characteristic": {
+                "day": "thds.",
+                "week": "m.",
+                "month": "m.",
+                "year": "m.",
+            },
+            "date_period_type_translate": {
+                "day": "day",
+                "week": "week",
+                "month": "month",
+                "year": "year",
+            },
+            "day_of_week_translate": [
+                "Sunday",
+                "Monday",
+                "Tuesday",
+                "Wednesday",
+                "Thursday",
+                "Friday",
+                "Saturday",
+            ],
+            "icon": "Индикатор | Indicator",
+            "rank_now": "Curr. rating | ",
+            "rank_last": "Past rating | ",
+            "page_name": "Page name | ",
+            "page_name_translate": "Name translation | ",
+            "sum_views": "Number of views | ",
+            "increment_percent": "Increase (in %) | ",
+            "message_top_now": (
+                "{{ wikipedia_segment }}\n"  # noqa
+                "Information for {{ date_period_type }} {{ ds }} ({{ day_of_week }})"  # noqa
+                "\nTotal number of views on wikipedia: {{ count_views }} {{ numerical_characteristic }} "  # noqa
+                "(increment: {{ views_increment_percent }}% )\n"  # noqa
+                "{{ col1 }}{{ col2 }}{{ col3 }}{{ col4 }}{{ col4 }}{{ col5 }}{{ col6 }}{{ col7 }}"  # noqa
+                "{{ pages_data }}"  # noqa
+            ),  # noqa
+            "message_new_pages": (
+                "{{ wikipedia_segment }}\n"
+                "Difference from the previous period ({{ date_period_type }}).\n"
+                "\n"
+                "New pages at the top:\n"
+                "{{ col1 }}{{ col2 }}{{ col3 }}{{ col4 }}{{ col5 }}{{ col6 }}{{ col7 }}"  # noqa
+                "{{ pages_data }}"
+            ),  # noqa
+            "message_go_out_pages": (
+                "{{ wikipedia_segment }}\n"
+                "Pages that came out of the top:\n"
+                "{{ col1 }}{{ col2 }}{{ col3 }}{{ col4 }}{{ col5 }}{{ col6 }}{{ col7 }}"  # noqa
+                "{{ pages_data }}"
+            ),  # noqa
+            "message_difference_pages": (
+                "{{ wikipedia_segment }}\n"
+                "The changes among those pages in the top remain:\n"
+                "{{ col1 }}{{ col2 }}{{ col3 }}{{ col4 }}{{ col5 }}{{ col6 }}{{ col7 }}"  # noqa
+                "{{ pages_data }}"
+            ),
+        },
     },  # английский
     "es": {
         "domain_code": "es",
@@ -116,15 +174,15 @@ DOMAIN_CONFIG = {
         "tags": ["#german", "#de"],
         "wikipedia_segment": "🇩🇪German🇩🇪",
     },  # немецкий
-    "it": {
-        "domain_code": "it",
-        "time_correction": 2,
-        "resourse": "ita_Latn",
-        "translate_other_languages": False,
-        "send_massages": False,
-        "tags": ["#italian", "#it"],
-        "wikipedia_segment": "🇮🇹Italian🇮🇹",
-    },  # итальянский
+    # "it": {
+    #     "domain_code": "it",
+    #     "time_correction": 2,
+    #     "resourse": "ita_Latn",
+    #     "translate_other_languages": False,
+    #     "send_massages": False,
+    #     "tags": ["#italian", "#it"],
+    #     "wikipedia_segment": "🇮🇹Italian🇮🇹",
+    # },  # итальянский
     "uk": {
         "domain_code": "uk",
         "time_correction": 3,
@@ -151,7 +209,7 @@ DOMAIN_CONFIG = {
         "send_massages": False,
         "tags": ["#persian", "#fa"],
         "wikipedia_segment": "🇮🇷Persian🇮🇷",
-    },  # французкий
+    },  # персидский
     "pl": {
         "domain_code": "pl",
         "time_correction": 2,
@@ -188,15 +246,15 @@ DOMAIN_CONFIG = {
         "tags": ["#hindi", "#hi"],
         "wikipedia_segment": "🇮🇳Hindi🇮🇳",
     },  # хинди
-    "ja": {
-        "domain_code": "ja",
-        "time_correction": 9,
-        "resourse": "jpn_Jpan",
-        "translate_other_languages": False,
-        "send_massages": False,
-        "tags": ["#japanese", "#ja"],
-        "wikipedia_segment": "🇯🇵Japanese🇯🇵",
-    },  # японский
+    # "ja": {
+    #     "domain_code": "ja",
+    #     "time_correction": 9,
+    #     "resourse": "jpn_Jpan",
+    #     "translate_other_languages": False,
+    #     "send_massages": False,
+    #     "tags": ["#japanese", "#ja"],
+    #     "wikipedia_segment": "🇯🇵Japanese🇯🇵",
+    # },  # японский
     "id": {
         "domain_code": "id",
         "time_correction": 7,
@@ -214,35 +272,56 @@ DOMAIN_CONFIG = {
         "send_massages": False,
         "tags": ["#hebrew", "#he"],
         "wikipedia_segment": "🇮🇱Hebrew🇮🇱",
-    },  # иврит
-    "hy": {
-        "domain_code": "hy",
-        "time_correction": 4,
-        "resourse": "hye_Armn",
-        "translate_other_languages": False,
-        "send_massages": False,
-        "tags": ["#armenian", "#hy"],
-        "wikipedia_segment": "🇦🇲Armenian🇦🇲",
-    },  # армянский
-    "az": {
-        "domain_code": "az",
-        "time_correction": 4,
-        "resourse": "azj_Latn",
-        "translate_other_languages": False,
-        "send_massages": False,
-        "tags": ["#azerbanian", "#az"],
-        "wikipedia_segment": "🇦🇿Azerbanian🇦🇿",
-    },  # азербанжанский
-    "sr": {
-        "domain_code": "sr",
-        "time_correction": 2,
-        "resourse": "srp_Cyrl",
-        "translate_other_languages": False,
-        "send_massages": False,
-        "tags": ["#serbian", "#sr"],
-        "wikipedia_segment": "🇷🇸Serbian🇷🇸",
-    },  # сербский
+    }  # иврит
+    # "hy": {
+    #     "domain_code": "hy",
+    #     "time_correction": 4,
+    #     "resourse": "hye_Armn",
+    #     "translate_other_languages": False,
+    #     "send_massages": False,
+    #     "tags": ["#armenian", "#hy"],
+    #     "wikipedia_segment": "🇦🇲Armenian🇦🇲",
+    # },  # армянский
+    # "az": {
+    #     "domain_code": "az",
+    #     "time_correction": 4,
+    #     "resourse": "azj_Latn",
+    #     "translate_other_languages": False,
+    #     "send_massages": False,
+    #     "tags": ["#azerbanian", "#az"],
+    #     "wikipedia_segment": "🇦🇿Azerbanian🇦🇿",
+    # },  # азербанжанский
+    #     "sr": {
+    #         "domain_code": "sr",
+    #         "time_correction": 2,
+    #         "resourse": "srp_Cyrl",
+    #         "translate_other_languages": False,
+    #         "send_massages": False,
+    #         "tags": ["#serbian", "#sr"],
+    #         "wikipedia_segment": "🇷🇸Serbian🇷🇸",
+    #     },  # сербский
 }
+
+GROUP = {
+    "western_europe_america": ["en", "es", "pt", "fr", "de"],
+    "eastern_europe_cis": ["ru", "uk", "pl",],
+    "middle_east": ["tr", "fa", "arz", "ar", "he"],
+    "asia": ["hi", "id"],
+}
+
+for key_domen in DOMAIN_CONFIG.keys():
+    if DOMAIN_CONFIG[key_domen]["send_massages"]:
+        new_dict = {key: [] for key in DOMAIN_CONFIG.keys()}
+        for key, values in GROUP.items():
+            for domain_code in values:
+                if domain_code == key_domen:
+                    new_dict[domain_code].append(f"{key_domen.upper()}_GROUP")
+                else:
+                    new_dict[domain_code].append(f"{key_domen.upper()}_{key.upper()}")
+                    new_dict[domain_code].append(f"{key_domen.upper()}_TRANSLATION")
+        # print(new_dict)
+        DOMAIN_CONFIG[key_domen]["message_settings"]["group_tokens"] = new_dict
+
 
 SEND_MESSAGES = [
     key for key in DOMAIN_CONFIG.keys() if DOMAIN_CONFIG[key]["send_massages"]
@@ -259,3 +338,27 @@ for key, value in DOMAIN_CONFIG.items():
     if (value["resourse"], value["domain_code"]) in copy_target:
         copy_target.remove((value["resourse"], value["domain_code"]))
     DOMAIN_CONFIG[key]["target"] = copy_target
+
+BOTS = {
+    "ru": ["TELEGRAM_TOKEN_BOT", "TELEGRAM_TOKEN_BOT_1", "TELEGRAM_TOKEN_BOT_2"],
+    "en": [
+        "EN_TELEGRAM_TOKEN_BOT",
+        "EN_TELEGRAM_TOKEN_BOT_1",
+        "EN_TELEGRAM_TOKEN_BOT_2",
+    ],
+}
+
+
+# text = "start_oper >> "
+# for index_2 in range(len(DOMAIN_CONFIG)):
+#     text += f"groups_message[{index_2}] >> "
+# text = text.removesuffix(" >> ")
+
+# print(text)
+
+# text = "start_oper >> "
+# for index_2 in range(len(DOMAIN_CONFIG), len(DOMAIN_CONFIG) * 2):
+#     text += f"groups_message[{index_2}] >> "
+# text_2 = text.removesuffix(" >> ")
+
+# print(text_2)
