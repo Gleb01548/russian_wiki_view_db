@@ -21,7 +21,7 @@ DOMAIN_CONFIG = {
             },
             "date_period_type_translate": {
                 "day": "день",
-                "week": "неделя",
+                "week": "неделю",
                 "month": "месяц",
                 "year": "год",
             },
@@ -304,7 +304,11 @@ DOMAIN_CONFIG = {
 
 GROUP = {
     "western_europe_america": ["en", "es", "pt", "fr", "de"],
-    "eastern_europe_cis": ["ru", "uk", "pl",],
+    "eastern_europe_cis": [
+        "ru",
+        "uk",
+        "pl",
+    ],
     "middle_east": ["tr", "fa", "arz", "ar", "he"],
     "asia": ["hi", "id"],
 }

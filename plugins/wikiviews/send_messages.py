@@ -1,12 +1,10 @@
 import os
 import time
-import requests
 
 from airflow.models import BaseOperator
 from airflow.utils.context import Context
 from airflow import AirflowException
 from telebot import TeleBot
-from telebot.apihelper import ApiTelegramException
 
 
 class SendMessages(BaseOperator):
