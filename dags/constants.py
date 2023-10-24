@@ -29,7 +29,7 @@ DOMAIN_CONFIG = {
                 "Воскресенье",
                 "Понедельник",
                 "Вторник",
-                "Средний",
+                "Среда",
                 "Четверг",
                 "Пятница",
                 "Суббота",
@@ -46,7 +46,7 @@ DOMAIN_CONFIG = {
                 "Информация за {{ date_period_type }} {{ ds }} ({{ day_of_week }})"  # noqa
                 "\nОбщее число просмотров википедии: {{ count_views }} {{ numerical_characteristic }} "  # noqa
                 "(прирост: {{ views_increment_percent }}% )\n"  # noqa
-                "{{ col1 }}{{ col2 }}{{ col3 }}{{ col4 }}{{ col4 }}{{ col5 }}{{ col6 }}{{ col7 }}"  # noqa
+                "{{ col1 }}{{ col2 }}{{ col3 }}{{ col4 }}{{ col5 }}{{ col6 }}{{ col7 }}"  # noqa
                 "{{ pages_data }}"  # noqa
             ),  # noqa
             "message_new_pages": (
@@ -113,7 +113,7 @@ DOMAIN_CONFIG = {
                 "Information for {{ date_period_type }} {{ ds }} ({{ day_of_week }})"  # noqa
                 "\nTotal number of views on wikipedia: {{ count_views }} {{ numerical_characteristic }} "  # noqa
                 "(increment: {{ views_increment_percent }}% )\n"  # noqa
-                "{{ col1 }}{{ col2 }}{{ col3 }}{{ col4 }}{{ col4 }}{{ col5 }}{{ col6 }}{{ col7 }}"  # noqa
+                "{{ col1 }}{{ col2 }}{{ col3 }}{{ col4 }}{{ col5 }}{{ col6 }}{{ col7 }}"  # noqa
                 "{{ pages_data }}"  # noqa
             ),  # noqa
             "message_new_pages": (

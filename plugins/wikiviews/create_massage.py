@@ -58,10 +58,7 @@ class CreateMessage(BaseOperator):
                 page_name = f'{data["page_translation"][i]} | {page_name}'
 
             if stay_in_top:
-                pages_data += (
-                    f'{data["increment_percent"][i]} | {page_name} | {data["page_view_sum"][i]} |'
-                    f'{data["rank_actual"][i]} | {data["rank_past"][i]}'
-                )
+                pages_data += f'{data["increment_percent"][i]} | {page_name} | {data["page_view_sum"][i]}'
             else:
                 pages_data += (
                     f'{data["rank"][i]} | {page_name} | {data["page_view_sum"][i]}'
@@ -91,8 +88,8 @@ class CreateMessage(BaseOperator):
             col_dict = {
                 "col1": message_settings["rank_now"],
                 "col2": message_settings["page_name_translate"],
-                "col3": message_settings["page_name"],
-                "col4": message_settings["sum_views"].removesuffix(" | "),
+                "col4": message_settings["page_name"],
+                "col3": message_settings["sum_views"].removesuffix(" | "),
             }
         else:
             col_dict = {
@@ -157,17 +154,13 @@ class CreateMessage(BaseOperator):
                 "col1": message_settings["increment_percent"],
                 "col2": message_settings["page_name_translate"],
                 "col3": message_settings["page_name"],
-                "col4": message_settings["sum_views"],
-                "col5": message_settings["rank_now"],
-                "col6": message_settings["rank_last"].removesuffix(" | "),
+                "col4": message_settings["sum_views"].removesuffix(" | "),
             }
         else:
             col_dict = {
                 "col1": message_settings["increment_percent"],
                 "col2": message_settings["page_name"],
-                "col3": message_settings["sum_views"],
-                "col4": message_settings["rank_now"],
-                "col5": message_settings["rank_last"].removesuffix(" | "),
+                "col3": message_settings["sum_views"].removesuffix(" | "),
             }
 
         message_difference_pages = Template(
@@ -190,7 +183,7 @@ class CreateMessage(BaseOperator):
             text += "\n\n\n"
             text += tags
             text += f" #{message_settings['day_of_week_translate'][day_of_week]}"
-            text += f" #{message_settings['date_period_type_translate'][self.date_period_type]}"
+            text += f" #period_{message_settings['date_period_type_translate'][self.date_period_type]}"
             text += f" #{file_type}"
 
             file_name = (
@@ -221,7 +214,7 @@ class CreateMessage(BaseOperator):
 
             tags = " ".join(self.config["tags"])
             for tag, period in zip([year, month, day], ["year", "month", "day"]):
-                tags += f" #period_{self.config['message_settings']['date_period_type_translate'][period]}_{tag}"
+                tags += f" #{self.config['message_settings']['date_period_type_translate'][period]}_{tag}"
 
             with open(path_load_data) as f:
                 data = json.load(f)
@@ -262,7 +255,7 @@ class CreateMessage(BaseOperator):
 
                 tags = " ".join(self.config["tags"])
                 for tag, period in zip([year, month, day], ["year", "month", "day"]):
-                    tags += f" #period_{target_config['message_settings']['date_period_type_translate'][period]}_{tag}"
+                    tags += f" #{target_config['message_settings']['date_period_type_translate'][period]}_{tag}"
 
                 self._create_save_messages(
                     data=data,
