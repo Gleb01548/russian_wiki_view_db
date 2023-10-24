@@ -59,6 +59,9 @@ for code in SEND_MESSAGES:
         @task_group(dag=dag, group_id=f"send_message_group_{code}_{domain_code}")
         def send_message_subgroup():
             not_end_day = EmptyOperator(task_id="not_end_day", dag=dag)
+
+            buffer_end_month = EmptyOperator(task_id="buffer_end_month", dag=dag)
+            buffer_end_year = EmptyOperator(task_id="buffer_end_year", dag=dag)
             not_end_week_month_year = EmptyOperator(
                 task_id="not_end_week_month_year", dag=dag
             )
@@ -129,10 +132,10 @@ for code in SEND_MESSAGES:
                     list_branches.append(end_week.task_id)
 
                 if data_interval_start.day == data_interval_start.days_in_month:
-                    list_branches.append(end_month.task_id)
+                    list_branches.append(buffer_end_month.task_id)
 
                 if data_interval_start.year != data_interval_start.add(days=1).year:
-                    list_branches.append(end_year.task_id)
+                    list_branches.append(buffer_end_year.task_id)
 
                 if list_branches:
                     return list_branches
@@ -167,7 +170,12 @@ for code in SEND_MESSAGES:
             (
                 end_day
                 >> check_end_week_month_year
-                >> [end_week, end_month, end_year, not_end_week_month_year]
+                >> [
+                    end_week,
+                    buffer_end_month,
+                    buffer_end_year,
+                    not_end_week_month_year,
+                ]
             )
 
             (
@@ -178,6 +186,9 @@ for code in SEND_MESSAGES:
                 >> end_month_non_failed
                 >> end_year
             )
+
+            buffer_end_month >> end_month
+            buffer_end_year >> end_year
 
         groups_message.append(send_message_subgroup())
 

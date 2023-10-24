@@ -405,6 +405,7 @@ trigger_dag = TriggerDagRunOperator(
     reset_dag_run=True,
     trigger_rule="none_failed",
     dag=dag,
+    wait_for_completion=False,
 )
 
 (

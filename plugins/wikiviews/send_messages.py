@@ -1,5 +1,6 @@
 import os
 import time
+import requests
 
 from airflow.models import BaseOperator
 from airflow.utils.context import Context
@@ -56,7 +57,7 @@ class SendMessages(BaseOperator):
     def _send_message(self, chat_id, text):
         try:
             self.tg_bot.send_message(chat_id=chat_id, text=text)
-        except ApiTelegramException:
+        except:
             print("time.sleep")
             time.sleep(30)
             self.tg_bot.send_message(chat_id=chat_id, text=text)
@@ -64,7 +65,7 @@ class SendMessages(BaseOperator):
     def _send_photo(self, chat_id, photo):
         try:
             self.tg_bot.send_photo(chat_id=chat_id, photo=photo)
-        except ApiTelegramException:
+        except:
             print("time.sleep")
             time.sleep(30)
             self.tg_bot.send_photo(chat_id=chat_id, photo=photo)
