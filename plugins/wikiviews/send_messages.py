@@ -58,15 +58,25 @@ class SendMessages(BaseOperator):
         except:
             print("time.sleep")
             time.sleep(30)
-            self.tg_bot.send_message(chat_id=chat_id, text=text)
+            try:
+                self.tg_bot.send_message(chat_id=chat_id, text=text)
+            except:
+                print("time.sleep2")
+                time.sleep(30)
+                self.tg_bot.send_message(chat_id=chat_id, text=text)
 
     def _send_photo(self, chat_id, photo):
         try:
             self.tg_bot.send_photo(chat_id=chat_id, photo=photo)
         except:
-            print("time.sleep")
+            print("time.sleep_photo")
             time.sleep(30)
-            self.tg_bot.send_photo(chat_id=chat_id, photo=photo)
+            try:
+                self.tg_bot.send_photo(chat_id=chat_id, photo=photo)
+            except:
+                print("time.sleep_photo2")
+                time.sleep(30)
+                self.tg_bot.send_photo(chat_id=chat_id, photo=photo)
 
     def send_message(self, path_message, path_graphs, actual_date):
         for message_type in ["TopNow", "NewInTop", "GoOut", "Diff"]:

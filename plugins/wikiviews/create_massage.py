@@ -55,7 +55,7 @@ class CreateMessage(BaseOperator):
         for i, page_name in enumerate(data["page_name"]):
             pages_data += "\n"
             if translate:
-                page_name = f'{data["page_translation"][i]} | {page_name}'
+                page_name = f'{data["page_translation"][i][:35]} | {page_name}'
 
             if stay_in_top:
                 pages_data += f'{data["increment_percent"][i]} | {page_name} | {data["page_view_sum"][i]}'
