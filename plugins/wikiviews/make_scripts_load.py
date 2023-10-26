@@ -1,6 +1,7 @@
 import gzip
 from airflow.models import BaseOperator
 from airflow.utils.context import Context
+from airflow import AirflowException
 
 
 class MakeScriptsLoad(BaseOperator):
@@ -42,7 +43,11 @@ class MakeScriptsLoad(BaseOperator):
             data = bytes_data.decode("utf-8").removesuffix("\n").split("\n")
 
         for line in data:
-            domain_code, page_title, view_counts, _ = line.split(" ")
+            try:
+                domain_code, page_title, view_counts, _ = line.split(" ")
+            except ValueError:
+                print(line)
+
             if domain_code in result:
                 result[domain_code][page_title] = view_counts
 

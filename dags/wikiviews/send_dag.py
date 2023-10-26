@@ -26,7 +26,7 @@ path_analysis_save = os.path.join(
 
 
 default_args = {
-    "wait_for_downstream": True,
+    "depends_on_past": True,
     "retries": 10,
     "retry_delay": dt.timedelta(seconds=10),
     "execution_timeout": dt.timedelta(minutes=60),

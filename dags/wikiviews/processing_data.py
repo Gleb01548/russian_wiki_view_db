@@ -398,6 +398,7 @@ for domain_code, config in DOMAIN_CONFIG.items():
 
     groups_load_to_postgres.append(load_to_postgres_trigger_clickhouse())
 
+
 trigger_dag = TriggerDagRunOperator(
     task_id="trigger_send_message",
     trigger_dag_id="send_message",
@@ -408,11 +409,22 @@ trigger_dag = TriggerDagRunOperator(
     wait_for_completion=False,
 )
 
-(
-    сheck_data
-    # >> create_table_group
-    >> get_data
-    >> make_scripts_load
-    >> groups_load_to_postgres
-    >> trigger_dag
+not_end_day = EmptyOperator(task_id="not_end_day", dag=dag)
+
+
+def _check_end_day(time_correction_list: list, **context):
+    for time_correction in time_correction_list:
+        data_interval_start = context["data_interval_start"].add(hours=time_correction)
+        if data_interval_start.hours == 23:
+            return trigger_dag.task_id
+
+    return not_end_day.task_id
+
+
+check_end_day = BranchPythonOperator(
+    task_id="check_end_day",
+    python_callable=_check_end_day,
+    op_args=[val["time_correction"] for val in DOMAIN_CONFIG.values()],
 )
+
+(сheck_data >> get_data >> make_scripts_load >> groups_load_to_postgres >> trigger_dag)

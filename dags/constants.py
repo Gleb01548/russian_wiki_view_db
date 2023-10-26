@@ -43,7 +43,7 @@ DOMAIN_CONFIG = {
             "increment_percent": "Рост (в %) | ",
             "message_top_now": (
                 "{{ wikipedia_segment }}\n"  # noqa
-                "Информация за {{ ds }} период: {{ date_period_type }} ({{ day_of_week }})"  # noqa
+                "Информация за {{ ds }} ({{ day_of_week }}). Период: {{ date_period_type }}"  # noqa
                 "\n"
                 "\nОбщее число просмотров википедии: {{ count_views }} {{ numerical_characteristic }} "  # noqa
                 "(прирост: {{ views_increment_percent }}% )\n"  # noqa
@@ -113,7 +113,7 @@ DOMAIN_CONFIG = {
             "increment_percent": "Increase (in %) | ",
             "message_top_now": (
                 "{{ wikipedia_segment }}\n"  # noqa
-                "Information for {{ date_period_type }} {{ ds }} ({{ day_of_week }})"  # noqa
+                "Information for {{ ds }} ({{ day_of_week }}). Period {{ date_period_type }}"  # noqa
                 "\nTotal number of views on wikipedia: {{ count_views }} {{ numerical_characteristic }} "  # noqa
                 "(increment: {{ views_increment_percent }}% )\n"  # noqa
                 "{{ col1 }}{{ col2 }}{{ col3 }}{{ col4 }}{{ col5 }}{{ col6 }}{{ col7 }}"  # noqa
@@ -130,14 +130,14 @@ DOMAIN_CONFIG = {
             "message_go_out_pages": (
                 "{{ wikipedia_segment }}\n"
                 "Pages that came out of the top:\n"
-                '\n'
+                "\n"
                 "{{ col1 }}{{ col2 }}{{ col3 }}{{ col4 }}{{ col5 }}{{ col6 }}{{ col7 }}"  # noqa
                 "{{ pages_data }}"
             ),  # noqa
             "message_difference_pages": (
                 "{{ wikipedia_segment }}\n"
                 "The changes among those pages in the top remain:\n"
-                '\n'
+                "\n"
                 "{{ col1 }}{{ col2 }}{{ col3 }}{{ col4 }}{{ col5 }}{{ col6 }}{{ col7 }}"  # noqa
                 "{{ pages_data }}"
             ),
