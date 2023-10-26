@@ -404,7 +404,6 @@ trigger_dag = TriggerDagRunOperator(
     trigger_dag_id="send_message",
     execution_date="{{ data_interval_start }}",
     reset_dag_run=True,
-    trigger_rule="none_failed",
     dag=dag,
     wait_for_completion=False,
 )
@@ -415,7 +414,7 @@ not_end_day = EmptyOperator(task_id="not_end_day", dag=dag)
 def _check_end_day(time_correction_list: list, **context):
     for time_correction in time_correction_list:
         data_interval_start = context["data_interval_start"].add(hours=time_correction)
-        if data_interval_start.hours == 23:
+        if data_interval_start.hour == 23:
             return trigger_dag.task_id
 
     return not_end_day.task_id
@@ -424,7 +423,16 @@ def _check_end_day(time_correction_list: list, **context):
 check_end_day = BranchPythonOperator(
     task_id="check_end_day",
     python_callable=_check_end_day,
-    op_args=[val["time_correction"] for val in DOMAIN_CONFIG.values()],
+    op_args=[[val["time_correction"] for val in DOMAIN_CONFIG.values()]],
+    dag=dag,
+    trigger_rule="none_failed",
 )
 
-(сheck_data >> get_data >> make_scripts_load >> groups_load_to_postgres >> trigger_dag)
+(
+    сheck_data
+    >> get_data
+    >> make_scripts_load
+    >> groups_load_to_postgres
+    >> check_end_day
+    >> [trigger_dag, not_end_day]
+)
