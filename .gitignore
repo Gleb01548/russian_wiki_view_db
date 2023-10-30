@@ -14,6 +14,5 @@ plugins/wikiviews/__pycache__
 docker-compose.yaml
 postgres_config
 clickhouse-server
-.gitignore
 test_clickhouse-server
 test_postgres_config
