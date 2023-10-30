@@ -330,6 +330,7 @@ services:
 
   airflow-triggerer:
     <<: *airflow-common
+    container_name: russian_wiki_airflow-triggerer
     command: triggerer
     cpus: 10
     healthcheck:
