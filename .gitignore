@@ -11,8 +11,6 @@ dags/test/__pycache__
 plugins/__pycache__
 plugins/russian_wiki/__pycache__
 plugins/wikiviews/__pycache__
-docker-compose.yaml
-postgres_config
-clickhouse-server
 test_clickhouse-server
 test_postgres_config
+docker-compose-test.yaml
