@@ -11,3 +11,4 @@ dags/test/__pycache__
 plugins/__pycache__
 plugins/russian_wiki/__pycache__
 plugins/wikiviews/__pycache__
+./docker-compose.yaml
