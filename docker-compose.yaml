@@ -258,7 +258,11 @@ services:
 
   airflow-triggerer:
     <<: *airflow-common
+<<<<<<< HEAD
     container_name: TEST_russian_wiki_airflow-triggerer
+=======
+    container_name: russian_wiki_airflow-triggerer
+>>>>>>> d6cd5079d7b792632c8f1fc74ee3b984e0980b03
     command: triggerer
     cpus: 10
     healthcheck:
