@@ -7,7 +7,7 @@
         <!-- Default settings. -->
         <default>
             <!-- Maximum memory usage for processing single query, in bytes. -->
-            <max_memory_usage>50000000000</max_memory_usage>
+            <max_memory_usage>15000000000</max_memory_usage>
 
             <!-- How to choose between replicas during distributed query processing.
                  random - choose random replica from set of replicas with minimum number of errors

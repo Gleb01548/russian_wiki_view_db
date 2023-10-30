@@ -101,7 +101,7 @@ x-airflow-common:
 services:
   postgres:
     image: postgres:13
-    container_name: russian_wiki_postgres_airflow
+    container_name: TEST_russian_wiki_postgres_airflow
     cpus: 7
     command: postgres -c 'config_file=/etc/postgresql/postgresql.conf'
     environment:
@@ -124,7 +124,7 @@ services:
   
   postgres_work:
     image: postgres:16
-    container_name: russian_wiki_postgres_work
+    container_name: TEST_russian_wiki_postgres_work
     command: postgres -c 'config_file=/etc/postgresql/postgresql.conf'
     cpus: 12
     mem_limit: 32g
@@ -148,7 +148,7 @@ services:
 
   clickhouse:
     image: clickhouse/clickhouse-server:22.2.3.5
-    container_name: russian_wiki_clickhouse
+    container_name: TEST_russian_wiki_clickhouse
     environment:
       - CLICKHOUSE_DB=russian_wiki
       - CLICKHOUSE_USER=username
@@ -166,7 +166,7 @@ services:
   
   translate:
     build: translation/.
-    container_name: russian_wiki_translate
+    container_name: TEST_russian_wiki_translate
     networks:
       - default
     volumes:
@@ -178,7 +178,7 @@ services:
   
   redis:
     image: redis:latest
-    container_name: russian_wiki_redis
+    container_name: TEST_russian_wiki_redis
     cpus: 7
     expose:
       - 6379
@@ -194,7 +194,7 @@ services:
 
   airflow-webserver:
     <<: *airflow-common
-    container_name: russian_wiki_webserver
+    container_name: TEST_russian_wiki_webserver
     command: webserver
     cpus: 6
     ports:
@@ -213,7 +213,7 @@ services:
 
   airflow-scheduler:
     <<: *airflow-common
-    container_name: russian_wiki_scheduler
+    container_name: TEST_russian_wiki_scheduler
     command: scheduler
     cpus: 14
     healthcheck:
@@ -228,26 +228,9 @@ services:
       airflow-init:
         condition: service_completed_successfully
 
-  airflow-scheduler_1:
-    <<: *airflow-common
-    container_name: russian_wiki_scheduler_1
-    command: scheduler
-    cpus: 10
-    healthcheck:
-      test: ["CMD", "curl", "--fail", "http://localhost:8974/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-      start_period: 30s
-    restart: always
-    depends_on:
-      <<: *airflow-common-depends-on
-      airflow-init:
-        condition: service_completed_successfully
-
   airflow-worker:
     <<: *airflow-common
-    container_name: russian_wiki_worker
+    container_name: TEST_russian_wiki_worker
     command: celery worker
     healthcheck:
       # yamllint disable rule:line-length
@@ -272,64 +255,10 @@ services:
       airflow-init:
         condition: service_completed_successfully
 
-  airflow-worker_1:
-    <<: *airflow-common
-    container_name: russian_wiki_worker_1
-    command: celery worker
-    healthcheck:
-      # yamllint disable rule:line-length
-      test:
-        - "CMD-SHELL"
-        - 'celery --app airflow.providers.celery.executors.celery_executor.app inspect ping -d "celery@$${HOSTNAME}" || celery --app airflow.executors.celery_executor.app inspect ping -d "celery@$${HOSTNAME}"'
-      interval: 30s
-      timeout: 10s
-      retries: 5
-      start_period: 30s
-    cpus: 12
-    environment:
-      <<: *airflow-common-env
-      # Required to handle warm shutdown of the celery workers properly
-      # See https://airflow.apache.org/docs/docker-stack/entrypoint.html#signal-propagation
-      DUMB_INIT_SETSID: "0"
-    ports:
-      - "8230:8238"
-    restart: always
-    depends_on:
-      <<: *airflow-common-depends-on
-      airflow-init:
-        condition: service_completed_successfully
-
-
-  airflow-worker_2:
-    <<: *airflow-common
-    container_name: russian_wiki_worker_2
-    command: celery worker
-    healthcheck:
-      # yamllint disable rule:line-length
-      test:
-        - "CMD-SHELL"
-        - 'celery --app airflow.providers.celery.executors.celery_executor.app inspect ping -d "celery@$${HOSTNAME}" || celery --app airflow.executors.celery_executor.app inspect ping -d "celery@$${HOSTNAME}"'
-      interval: 30s
-      timeout: 10s
-      retries: 5
-      start_period: 30s
-    cpus: 12
-    environment:
-      <<: *airflow-common-env
-      # Required to handle warm shutdown of the celery workers properly
-      # See https://airflow.apache.org/docs/docker-stack/entrypoint.html#signal-propagation
-      DUMB_INIT_SETSID: "0"
-    ports:
-      - "8231:8238"
-    restart: always
-    depends_on:
-      <<: *airflow-common-depends-on
-      airflow-init:
-        condition: service_completed_successfully
-
 
   airflow-triggerer:
     <<: *airflow-common
+    container_name: TEST_russian_wiki_airflow-triggerer
     command: triggerer
     cpus: 10
     healthcheck:
@@ -346,7 +275,7 @@ services:
 
   airflow-init:
     <<: *airflow-common
-    container_name: russian_wiki_airflow_init
+    container_name: TEST_russian_wiki_airflow_init
     entrypoint: /bin/bash
     # yamllint disable rule:line-length
     command:
@@ -426,7 +355,7 @@ services:
   airflow-cli:
     <<: *airflow-common
     cpus: 7
-    container_name: russian_wiki_cli
+    container_name: TEST_russian_wiki_cli
     profiles:
       - debug
     environment:
@@ -443,7 +372,7 @@ services:
   # See: https://docs.docker.com/compose/profiles/
   flower:
     <<: *airflow-common
-    container_name: russian_wiki_flower
+    container_name: TEST_russian_wiki_flower
     command: celery flower
     cpus: 10
     profiles:
@@ -465,4 +394,4 @@ services:
 networks:
   default:
     external: True
-    name: russian_wiki
+    name: TEST_russian_wiki
