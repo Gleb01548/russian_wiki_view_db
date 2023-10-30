@@ -13,6 +13,7 @@ from airflow.sensors.python import PythonSensor
 from airflow.operators.trigger_dagrun import TriggerDagRunOperator
 from urllib import request
 from airflow.decorators import task_group
+from airflow.providers.telegram.operators.telegram import TelegramOperator
 
 from wikiviews.make_scripts_load import MakeScriptsLoad
 from wikiviews.load_postgres import LoadPostgres
@@ -428,6 +429,15 @@ check_end_day = BranchPythonOperator(
     trigger_rule="none_failed",
 )
 
+send_message_telegram_task = TelegramOperator(
+    task_id="send_message_telegram",
+    token=os.environ.get("TELEGRAM_NOTIFICATION"),
+    chat_id=os.environ.get("CHANNEL_AIRFLOW"),
+    text=f"Wiki views problem with DAG:{dag.dag_id}",
+    dag=dag,
+    trigger_rule="one_failed",
+)
+
 (
     сheck_data
     >> get_data
@@ -435,4 +445,5 @@ check_end_day = BranchPythonOperator(
     >> groups_load_to_postgres
     >> check_end_day
     >> [trigger_dag, not_end_day]
+    >> send_message_telegram_task
 )
