@@ -23,7 +23,7 @@ default_args = {
 }
 
 dag = DAG(
-    dag_id="test_drop_and_create_tables",
+    dag_id="drop_and_create_tables",
     tags=[
         "test",
         "wikipedia_views",
@@ -48,25 +48,6 @@ def create_table_group():
             dag=dag,
         )
         create_table
-
-
-# end_week = EmptyOperator(task_id="end_week", dag=dag)
-
-# create_table_group = create_table_group()
-# create_table_group = [i for i in create_table_group]
-
-# new_str = ""
-
-# len_create_table_group = len(create_table_group) - 1
-
-# for index, _ in enumerate(create_table_group):
-#     if index < len_create_table_group:
-#         new_str += f"create_table_group[{index}] >> "
-#     else:
-#         new_str += f"create_table_group[{index}]"
-
-
-# eval(f"{new_str}") >> end_week
 
 
 create_table_group = create_table_group()

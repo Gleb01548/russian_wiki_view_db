@@ -6,6 +6,7 @@ from airflow import DAG
 from airflow.operators.empty import EmptyOperator
 from airflow.operators.python import BranchPythonOperator
 from airflow.decorators import task_group
+from airflow.providers.telegram.operators.telegram import TelegramOperator
 
 from wikiviews.send_messages import SendMessages
 
@@ -179,7 +180,6 @@ for code in SEND_MESSAGES:
             )
 
             (
-                # end_day_non_failed
                 end_week
                 >> end_week_non_failed
                 >> end_month
@@ -192,15 +192,14 @@ for code in SEND_MESSAGES:
 
         groups_message.append(send_message_subgroup())
 
-# text = "start_oper >> "
-# for index_2 in range(len(DOMAIN_CONFIG)):
-#     text += f"groups_message[{index_2}] >> "
-# text = text.removesuffix(" >> ")
-
-# text = "start_oper >> "
-# for index_2 in range(len(DOMAIN_CONFIG), len(DOMAIN_CONFIG) * 2):
-#     text += f"groups_message[{index_2}] >> "
-# text_2 = text.removesuffix(" >> ")
+send_message_telegram_task = TelegramOperator(
+    task_id="send_message_telegram",
+    token=os.environ.get("TELEGRAM_NOTIFICATION"),
+    chat_id=os.environ.get("CHANNEL_AIRFLOW"),
+    text=f"Wiki views problem with DAG:{dag.dag_id}",
+    dag=dag,
+    trigger_rule="one_failed",
+)
 
 
 (
@@ -240,3 +239,6 @@ for code in SEND_MESSAGES:
     >> groups_message[28]
     >> groups_message[29]
 )
+
+groups_message[14] >> send_message_telegram_task
+groups_message[29] >> send_message_telegram_task
