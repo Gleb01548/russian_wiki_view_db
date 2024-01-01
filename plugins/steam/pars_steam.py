@@ -89,13 +89,15 @@ class ParsSteam(BaseOperator):
     def make_sql_script(self, data: list):
         with open(self.path_save_script, "w") as f:
             f.write(
-                f"insert into steam.steam_data (game_name, players_count, datetime) values"
+                f"insert into steam.steam_data (rank, game_name, players_count, date) values"
             )
             max_index = len(data) - 1
             for index, (name, players_count) in enumerate(data):
                 symbol = ",\n" if max_index > index else ";"
                 name = name.replace("'", "''")
-                f.write(f"('{name[:2000]}', '{players_count}', '{self.ds}'){symbol}")
+                f.write(
+                    f"('{index+1}', '{name[:2000]}', '{players_count}', '{self.ds}'){symbol}"
+                )
 
     def execute(self, context) -> None:
         self.create_path()
