@@ -33,9 +33,6 @@ class ParsSteam(BaseOperator):
         self.path_save_json = path_save_json
 
     def create_path(self):
-        self.path_save_script = os.path.join(
-            self.path_save_script, f"script_{self.ds}.sql"
-        )
         self.path_save_json = os.path.join(
             self.path_save_json, f"data_steam_{self.ds}.json"
         )
@@ -91,12 +88,14 @@ class ParsSteam(BaseOperator):
 
     def make_sql_script(self, data: list):
         with open(self.path_save_script, "w") as f:
-            f.write(f"insert into steam.steam_data (name, players_count) values")
+            f.write(
+                f"insert into steam.steam_data (game_name, players_count, datetime) values"
+            )
             max_index = len(data) - 1
             for index, (name, players_count) in enumerate(data):
                 symbol = ",\n" if max_index > index else ";"
                 name = name.replace("'", "''")
-                f.write(f"('{name[:2000]}', '{players_count}'){symbol}")
+                f.write(f"('{name[:2000]}', '{players_count}', '{self.ds}'){symbol}")
 
     def execute(self, context) -> None:
         self.create_path()
