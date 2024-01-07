@@ -6,11 +6,7 @@ logs
 venv
 .env
 notebook
-dags/__pycache__
-dags/test/__pycache__
-plugins/__pycache__
-plugins/russian_wiki/__pycache__
-plugins/wikiviews/__pycache__
 test_clickhouse-server
 test_postgres_config
 docker-compose-test.yaml
+**/__pycache__/

@@ -190,6 +190,8 @@ class CreateMessage(BaseOperator):
         path_save_xlsx = os.path.join(path_save, "xlsx")
         pathlib.Path(path_save_xlsx).mkdir(parents=True, exist_ok=True)
 
+        excel_files = []
+
         for data_type, message_type, columns_csv in zip(
             [
                 "actual_data",
@@ -206,6 +208,7 @@ class CreateMessage(BaseOperator):
             ],
         ):
             file_name = f"{self.date_period_type}_{message_type}_{actual_date}.xlsx"
+            excel_files.append(file_name)
             file_save_path = os.path.join(path_save_xlsx, file_name)
 
             print(message_type)
@@ -220,16 +223,6 @@ class CreateMessage(BaseOperator):
         file_excel_name = f"{self.date_period_type}_data_{actual_date}.xlsx"
 
         file_save_path = os.path.join(path_save_xlsx, file_excel_name)
-
-        excel_files = [
-            i
-            for i in os.listdir(path_save_xlsx)
-            if i.endswith(".xlsx")
-            and i.startswith(self.date_period_type)
-            and i != file_excel_name
-            # нужно проверять на имя вновь создаваемого файла,
-            # потому что алгорит может быть на пройд. интервалах
-        ]
 
         pd.DataFrame().to_excel(file_save_path)
 
