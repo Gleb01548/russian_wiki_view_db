@@ -21,10 +21,11 @@ default_args = {
 
 dag = DAG(
     dag_id="top_steam",
-    start_date=pendulum.datetime(2024, 1, 1),
+    start_date=pendulum.datetime(2024, 1, 1).add(months=-1),
     end_date=pendulum.now("UTC"),
-    tags=["top_steam"],
+    tags=["steam", "top_steam"],
     default_args=default_args,
+    max_active_runs=1,
     template_searchpath=path_save_script,
 )
 
