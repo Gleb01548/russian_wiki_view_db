@@ -34,7 +34,7 @@ default_args = {
 
 dag = DAG(
     dag_id="analysis_steam",
-    start_date=pendulum.datetime(2024, 1, 1).add(months=-1),
+    start_date=pendulum.datetime(2024, 1, 1),
     end_date=pendulum.now("UTC"),
     tags=["steam", "analysis_steam"],
     max_active_runs=1,

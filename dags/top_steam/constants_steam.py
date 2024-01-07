@@ -83,7 +83,7 @@ MESSAGE_CONFIG = {
             "Изменения среди тех игр, которые в топе остались:\n"
             "{{ col }}\n"
             "{{ pages_data }}\n\n"
-            "Более подробно об изменениях среди тех игр, которые в топе в файле excel."
+            "Более подробно об изменениях среди тех игр, которые в топе остались в файле excel."
         ),
     },
     "en": {
@@ -138,7 +138,7 @@ MESSAGE_CONFIG = {
             "Changes among those games that remained in the top:\n"
             "{{ col }}\n"
             "{{ pages_data }}\n\n"
-            "More details on the changes among those top games in the excel file."
+            "More details on the changes among those games in the top remaining in the excel file."
         ),
     },
 }
