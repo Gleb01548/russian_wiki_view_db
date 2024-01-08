@@ -330,14 +330,14 @@ class Analysis(BaseOperator):
                         "avg_for_period_prior",
                         "avg_for_period_actual",
                     ]:
-                        value = round(value / 1000, 2)
+                        value = round(value / 1000, 1)
                         value = self._format_num(value)
 
                     if key in [
                         "increment_percent_avg_players",
                         "increment_percent_players",
                     ]:
-                        value = round(value, 2)
+                        value = round(value, 1)
                         value = self._format_num(value)
                     data_dict_for_json[data_type][key].append(value)
         print(data_dict_for_json)
