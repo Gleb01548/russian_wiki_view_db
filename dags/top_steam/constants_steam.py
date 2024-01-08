@@ -3,20 +3,26 @@ path_save_json = "/data/steam_data/json"
 path_save_script = "/data/steam_data"
 path_save_analysis = "/data/steam_data/analysis"
 path_save_messages = "/data/steam_data/messages"
-columns_for_table_day = ["rank", "game_name", "players_count"]
+columns_for_table_day = ["rank", "players_count", "game_name"]
 columns_increment_for_table_day = [
+    "increment_percent_players",
+    "players_count",
+    "game_name",
+]
+columns_increment_for_table_csv_day = [
     "increment_percent_players",
     "game_name",
     "players_count",
     "rank_actual",
     "rank_prior",
 ]
-columns_for_table_not_day = ["rank", "game_name", "top_for_period", "avg_for_period"]
+
+columns_for_table_not_day = ["rank", "top_for_period", "avg_for_period", "game_name"]
 columns_increment_for_table_not_day = [
     "increment_days_in_top",
     "increment_percent_avg_players",
+    "avg_for_period_actual",
     "game_name",
-    "top_for_period_actual",
 ]
 columns_increment_for_table_csv_not_day = [
     "increment_days_in_top",
@@ -83,7 +89,7 @@ MESSAGE_CONFIG = {
             "Изменения среди тех игр, которые в топе остались:\n"
             "{{ col }}\n"
             "{{ pages_data }}\n\n"
-            "Более подробно об изменениях среди тех игр, которые в топе остались в файле excel."
+            "Более подробно в файле excel."
         ),
     },
     "en": {
@@ -138,7 +144,7 @@ MESSAGE_CONFIG = {
             "Changes among those games that remained in the top:\n"
             "{{ col }}\n"
             "{{ pages_data }}\n\n"
-            "More details on the changes among those games in the top remaining in the excel file."
+            "More details in the excel file."
         ),
     },
 }

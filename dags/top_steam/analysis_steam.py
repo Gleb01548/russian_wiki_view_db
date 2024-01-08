@@ -18,6 +18,7 @@ from top_steam.constants_steam import (
     MESSAGE_CONFIG,
     columns_for_table_day,
     columns_increment_for_table_day,
+    columns_increment_for_table_csv_day,
     columns_for_table_not_day,
     columns_increment_for_table_not_day,
     columns_increment_for_table_csv_not_day,
@@ -134,7 +135,7 @@ for domain_code, config in MESSAGE_CONFIG.items():
             domain_code=domain_code,
             columns_for_table=columns_for_table_day,
             columns_increment_for_table=columns_increment_for_table_day,
-            columns_increment_for_table_csv=columns_increment_for_table_day,
+            columns_increment_for_table_csv=columns_increment_for_table_csv_day,
             dag=dag,
         )
 
