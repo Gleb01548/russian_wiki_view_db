@@ -55,7 +55,7 @@ class Analysis(BaseOperator):
     ) -> dict:
         # запрос текущего топа
         query_actual_data = f"""
-        select rank,
+        select row_number() OVER(order by players_count DESC) as rank,
         game_name,
         players_count
         from steam.steam_data
@@ -64,13 +64,17 @@ class Analysis(BaseOperator):
 
         subqueries = f"""
         with tab1 as (
-        select *
+        select row_number() OVER(order by players_count DESC) as rank,
+        game_name,
+        players_count
         from steam.steam_data
         where date = '{actual_date}'::date  
         ),
         
         tab2 as (
-        select *
+        select row_number() OVER(order by players_count DESC) as rank,
+        game_name,
+        players_count
         from steam.steam_data
         where date = '{prior_date}'::date  
         )
