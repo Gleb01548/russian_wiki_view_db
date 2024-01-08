@@ -1,6 +1,6 @@
 import os
+import json
 import pathlib
-import pandas as pd
 
 from airflow.models import BaseOperator
 from airflow.providers.postgres.hooks.postgres import PostgresHook
@@ -53,7 +53,7 @@ class PeriodViewsSum(BaseOperator):
             self.date_period_type,
         )
 
-        pathlib.Path(path_save_data)
+        pathlib.Path(path_save_data).mkdir(parents=True, exist_ok=True)
 
         path_save_data = os.path.join(
             path_save_data, f"{actual_date}_data_for_graphs.json"
@@ -61,7 +61,7 @@ class PeriodViewsSum(BaseOperator):
 
         conf_graph = {
             "day": {
-                "date_func": "HOUR",
+                "date_func": "hour",
                 "x_name": "hours",
                 "divisor": 10**3,
                 "title": f"Number of views for the last day ({actual_date}) in thousands",
@@ -98,22 +98,30 @@ class PeriodViewsSum(BaseOperator):
 
         conf_graph = conf_graph[self.date_period_type]
 
-        query = f"""
-        select {conf_graph['date_func']}(datetime) as {conf_graph['x_name']},
-            round(SUM(page_view_count) / {conf_graph["divisor"]}, 2) as views
-        from data_views_{self.domain_code}
-        where date_trunc('{self.date_period_type}', datetime)
-        = '{actual_date}'::datetime
-        group by {conf_graph['date_func']}(datetime)
-        order by {conf_graph['date_func']}(datetime);
-        """
-
         if self.date_period_type == "day":
+            query = f"""
+            select date_part('{conf_graph['date_func']}', datetime)::int as {conf_graph['x_name']},
+                round(SUM(page_view_count) / {conf_graph["divisor"]}, 2)::int as views
+            from resource.{self.domain_code}
+            where date_trunc('{self.date_period_type}', datetime)
+            = '{actual_date}'
+            group by date_part('{conf_graph['date_func']}', datetime)
+            order by date_part('{conf_graph['date_func']}', datetime);
+            """
             hook = PostgresHook(self.conn_id)
+            query_res = hook.get_records(query)
         else:
+            query = f"""
+            select {conf_graph['date_func']}(datetime)::int as {conf_graph['x_name']},
+                round(SUM(page_view_count) / {conf_graph["divisor"]}, 2)::int as views
+            from data_views_{self.domain_code}
+            where date_trunc('{self.date_period_type}', datetime)
+            = '{actual_date}'
+            group by {conf_graph['date_func']}(datetime)
+            order by {conf_graph['date_func']}(datetime);
+        """
             hook = ClickHouseHook(clickhouse_conn_id=self.clickhouse_conn_id)
-
-        query_res = hook.execute(query)
+            query_res = hook.execute(query)
 
         dict_res = {f"{conf_graph['x_name']}": [], "views": []}
 
@@ -121,5 +129,5 @@ class PeriodViewsSum(BaseOperator):
             dict_res[conf_graph["x_name"]].append(line[0])
             dict_res["views"].append(line[1])
 
-        df = pd.DataFrame.from_dict(dict_res)
-        df.to_json(path_save_data)
+        with open(path_save_data, "w") as file:
+            json.dump(dict_res, file)

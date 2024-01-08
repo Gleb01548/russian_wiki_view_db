@@ -9,6 +9,7 @@ from airflow.operators.empty import EmptyOperator
 from airflow.operators.python import PythonOperator
 from airflow.operators.datetime import BranchDateTimeOperator
 from airflow.providers.postgres.operators.postgres import PostgresOperator
+from airflow.providers.telegram.operators.telegram import TelegramOperator
 from airflow.sensors.python import PythonSensor
 from airflow.decorators import task_group
 
@@ -124,10 +125,18 @@ for domain_code, config in DOMAIN_CONFIG.items():
             dag=dag,
         )
 
+        hours_views_sum = PeriodViewsSum(
+            task_id="hours_views_sum",
+            config=config,
+            date_period_type="day",
+            conn_id=PASTGRES_CONN_ID,
+            path_save=PATH_DOMAIN_DATA,
+        )
+
         time_check = BranchDateTimeOperator(
             task_id="time_check",
             use_task_logical_date=True,
-            follow_task_ids_if_true=[postgres_to_clickhouse.task_id],
+            follow_task_ids_if_true=[hours_views_sum.task_id],
             follow_task_ids_if_false=[not_end_day.task_id],
             target_upper=pendulum.time(23, 0, 0).add(hours=-config["time_correction"]),
             target_lower=pendulum.time(23, 0, 0).add(hours=-config["time_correction"]),
@@ -145,18 +154,25 @@ for domain_code, config in DOMAIN_CONFIG.items():
             dag=dag,
         )
 
-        hours_views_sum = PeriodViewsSum(
-            task_id="hours_views_sum",
-            config=config,
-            date_period_type="day",
-            conn_id=PASTGRES_CONN_ID,
-            path_save=PATH_DOMAIN_DATA,
-        )
-
         load_to_postgres >> time_check >> [hours_views_sum, not_end_day]
         hours_views_sum >> postgres_to_clickhouse >> clean_table
 
     groups_load_to_postgres.append(load_to_postgres_trigger_clickhouse())
 
+send_message_telegram_task = TelegramOperator(
+    task_id="send_message_telegram",
+    token=os.environ.get("TELEGRAM_NOTIFICATION"),
+    chat_id=os.environ.get("CHANNEL_AIRFLOW"),
+    text=f"Wiki views problem with DAG:{dag.dag_id}",
+    dag=dag,
+    trigger_rule="one_failed",
+)
 
-сheck_data >> get_data >> make_scripts_load >> groups_load_to_postgres
+
+(
+    сheck_data
+    >> get_data
+    >> make_scripts_load
+    >> groups_load_to_postgres
+    >> send_message_telegram_task
+)
