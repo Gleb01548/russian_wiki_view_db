@@ -8,6 +8,8 @@ from airflow.providers.postgres.hooks.postgres import PostgresHook
 from airflow.operators.empty import EmptyOperator
 from airflow.operators.python import BranchPythonOperator
 from airflow.decorators import task_group
+from airflow.providers.telegram.operators.telegram import TelegramOperator
+
 
 from steam.analysis_data import Analysis
 from steam.create_message import CreateMessage
@@ -259,6 +261,15 @@ for domain_code, config in MESSAGE_CONFIG.items():
 
     domain_groups.append(create_message_domain())
 
+send_message_telegram_task = TelegramOperator(
+    task_id="send_message_telegram",
+    token=os.environ.get("TELEGRAM_NOTIFICATION"),
+    chat_id=os.environ.get("CHANNEL_AIRFLOW"),
+    text=f"Wiki views problem with DAG:{dag.dag_id}",
+    dag=dag,
+    trigger_rule="one_failed",
+)
+
 
 (
     sensor
@@ -266,4 +277,5 @@ for domain_code, config in MESSAGE_CONFIG.items():
     >> [analysis_week, analysis_month, analysis_year, analysis_day]
     >> end_analysis
     >> domain_groups
+    >> send_message_telegram_task
 )

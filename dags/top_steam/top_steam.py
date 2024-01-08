@@ -5,6 +5,7 @@ import datetime as dt
 import pendulum
 from airflow import DAG
 from airflow.providers.postgres.operators.postgres import PostgresOperator
+from airflow.providers.telegram.operators.telegram import TelegramOperator
 
 from steam.pars_steam import ParsSteam
 from top_steam.constants_steam import load_url, path_save_json, path_save_script
@@ -46,5 +47,13 @@ load_to_postgres = PostgresOperator(
     dag=dag,
 )
 
+send_message_telegram_task = TelegramOperator(
+    task_id="send_message_telegram",
+    token=os.environ.get("TELEGRAM_NOTIFICATION"),
+    chat_id=os.environ.get("CHANNEL_AIRFLOW"),
+    text=f"Wiki views problem with DAG:{dag.dag_id}",
+    dag=dag,
+    trigger_rule="one_failed",
+)
 
-load_data >> load_to_postgres
+load_data >> load_to_postgres >> send_message_telegram_task
