@@ -1,6 +1,7 @@
 import os
 import requests
 import datetime as dt
+import pathlib
 from urllib import request
 
 import pendulum
@@ -34,6 +35,7 @@ from wikiviews.constants import (
 агрегирует данные по дню и загружает в кликхаус
 """
 
+pathlib.Path(PATH_TEMP_FILES).mkdir(parents=True, exist_ok=True)
 
 path_dz_file = os.path.join(PATH_TEMP_FILES, "pageviews.gz")
 path_save_script = os.path.join(PATH_TEMP_FILES, "script_load_postgres")

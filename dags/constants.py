@@ -179,15 +179,15 @@ DOMAIN_CONFIG = {
         "tags": ["#german", "#de"],
         "wikipedia_segment": "🇩🇪German🇩🇪",
     },  # немецкий
-    # "it": {
-    #     "domain_code": "it",
-    #     "time_correction": 2,
-    #     "resourse": "ita_Latn",
-    #     "translate_other_languages": False,
-    #     "send_massages": False,
-    #     "tags": ["#italian", "#it"],
-    #     "wikipedia_segment": "🇮🇹Italian🇮🇹",
-    # },  # итальянский
+    "it": {
+        "domain_code": "it",
+        "time_correction": 2,
+        "resourse": "ita_Latn",
+        "translate_other_languages": False,
+        "send_massages": False,
+        "tags": ["#italian", "#it"],
+        "wikipedia_segment": "🇮🇹Italian🇮🇹",
+    },  # итальянский
     "uk": {
         "domain_code": "uk",
         "time_correction": 3,
@@ -251,15 +251,15 @@ DOMAIN_CONFIG = {
         "tags": ["#hindi", "#hi"],
         "wikipedia_segment": "🇮🇳Hindi🇮🇳",
     },  # хинди
-    # "ja": {
-    #     "domain_code": "ja",
-    #     "time_correction": 9,
-    #     "resourse": "jpn_Jpan",
-    #     "translate_other_languages": False,
-    #     "send_massages": False,
-    #     "tags": ["#japanese", "#ja"],
-    #     "wikipedia_segment": "🇯🇵Japanese🇯🇵",
-    # },  # японский
+    "ja": {
+        "domain_code": "ja",
+        "time_correction": 9,
+        "resourse": "jpn_Jpan",
+        "translate_other_languages": False,
+        "send_massages": False,
+        "tags": ["#japanese", "#ja"],
+        "wikipedia_segment": "🇯🇵Japanese🇯🇵",
+    },  # японский
     "id": {
         "domain_code": "id",
         "time_correction": 7,
@@ -277,34 +277,34 @@ DOMAIN_CONFIG = {
         "send_massages": False,
         "tags": ["#hebrew", "#he"],
         "wikipedia_segment": "🇮🇱Hebrew🇮🇱",
-    }  # иврит
-    # "hy": {
-    #     "domain_code": "hy",
-    #     "time_correction": 4,
-    #     "resourse": "hye_Armn",
-    #     "translate_other_languages": False,
-    #     "send_massages": False,
-    #     "tags": ["#armenian", "#hy"],
-    #     "wikipedia_segment": "🇦🇲Armenian🇦🇲",
-    # },  # армянский
-    # "az": {
-    #     "domain_code": "az",
-    #     "time_correction": 4,
-    #     "resourse": "azj_Latn",
-    #     "translate_other_languages": False,
-    #     "send_massages": False,
-    #     "tags": ["#azerbanian", "#az"],
-    #     "wikipedia_segment": "🇦🇿Azerbanian🇦🇿",
-    # },  # азербанжанский
-    #     "sr": {
-    #         "domain_code": "sr",
-    #         "time_correction": 2,
-    #         "resourse": "srp_Cyrl",
-    #         "translate_other_languages": False,
-    #         "send_massages": False,
-    #         "tags": ["#serbian", "#sr"],
-    #         "wikipedia_segment": "🇷🇸Serbian🇷🇸",
-    #     },  # сербский
+    },  # иврит
+    "hy": {
+        "domain_code": "hy",
+        "time_correction": 4,
+        "resourse": "hye_Armn",
+        "translate_other_languages": False,
+        "send_massages": False,
+        "tags": ["#armenian", "#hy"],
+        "wikipedia_segment": "🇦🇲Armenian🇦🇲",
+    },  # армянский
+    "az": {
+        "domain_code": "az",
+        "time_correction": 4,
+        "resourse": "azj_Latn",
+        "translate_other_languages": False,
+        "send_massages": False,
+        "tags": ["#azerbanian", "#az"],
+        "wikipedia_segment": "🇦🇿Azerbanian🇦🇿",
+    },  # азербанжанский
+    "sr": {
+        "domain_code": "sr",
+        "time_correction": 2,
+        "resourse": "srp_Cyrl",
+        "translate_other_languages": False,
+        "send_massages": False,
+        "tags": ["#serbian", "#sr"],
+        "wikipedia_segment": "🇷🇸Serbian🇷🇸",
+    },  # сербский
 }
 
 GROUP = {
