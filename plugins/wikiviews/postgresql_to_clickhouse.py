@@ -32,9 +32,10 @@ class PostgresqlToClickhouse(BaseOperator):
             f"""
             INSERT INTO data_views_{self.domain_code} (page_name, page_view_count, datetime)
             select page_name,
-                page_view_count,
-                datetime
+                SUM(page_view_count),
+                datetime::date
             from postgres_resource_{self.domain_code}
             where datetime::date = '{actual_date}'
+            group by datetime::date, page_name
             """
         )

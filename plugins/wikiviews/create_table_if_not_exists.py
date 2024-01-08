@@ -83,7 +83,7 @@ class CreateTableIFNotExists(BaseOperator):
             create table if not exists data_views_{self.domain_code} (
             page_name String,
             page_view_count Int32,
-            datetime DATETIME
+            datetime Date
             ) ENGINE = MergeTree ORDER BY (datetime, page_name);
             """
         )
@@ -102,7 +102,7 @@ class CreateTableIFNotExists(BaseOperator):
             create table if not exists postgres_resource_{self.domain_code} (
             page_name String,
             page_view_count Int32,
-            datetime DATETIME
+            datetime Date
             ) ENGINE = PostgreSQL('{host}:{port}', '{dbname}',
             '{self.domain_code}', '{user}', '{password}', 'resource');
             """
