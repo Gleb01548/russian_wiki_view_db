@@ -9,4 +9,6 @@ notebook
 test_clickhouse-server
 test_postgres_config
 docker-compose-test.yaml
+__pycache__/
 **/__pycache__/
+*.pyc
