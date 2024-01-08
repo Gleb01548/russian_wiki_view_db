@@ -1,15 +1,12 @@
 import gzip
 from airflow.models import BaseOperator
 from airflow.utils.context import Context
-from airflow import AirflowException
 
 
 class MakeScriptsLoad(BaseOperator):
     """
     Подгатавливает скрипты для загрузки данных в postgres
     """
-
-    template_fields = ("path_dz_file",)
 
     def __init__(
         self,
