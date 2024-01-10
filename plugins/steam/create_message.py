@@ -27,6 +27,7 @@ class CreateMessage(BaseOperator):
         path_for_json: str,
         date_period_type: str,
         columns_for_table: list,
+        columns_for_agr_year: list,
         columns_increment_for_table: list,
         columns_increment_for_table_csv: list,
         domain_code: str,
@@ -38,6 +39,7 @@ class CreateMessage(BaseOperator):
         self.path_for_json = path_for_json
         self.date_period_type = date_period_type
         self.columns_for_table = columns_for_table
+        self.columns_for_agr_year = columns_for_agr_year
         self.columns_increment_for_table = columns_increment_for_table
         self.columns_increment_for_table_csv = columns_increment_for_table_csv
         self.domain_code = domain_code
@@ -191,20 +193,25 @@ class CreateMessage(BaseOperator):
         pathlib.Path(path_save_xlsx).mkdir(parents=True, exist_ok=True)
 
         excel_files = []
+        actual_data = (
+            "actual_data" if self.date_period_type == "day" else "actual_data_full"
+        )
 
         for data_type, message_type, columns_csv in zip(
             [
-                "actual_data",
+                actual_data,
                 "new_in_top",
                 "go_out_from_top",
                 "stay_in_top",
+                "cummulativ_total_for_year",
             ],
-            ["TopNow", "NewInTop", "GoOut", "Diff"],
+            ["TopNow", "NewInTop", "GoOut", "Diff", "CumulYear"],
             [
                 self.columns_for_table,
                 self.columns_for_table,
                 self.columns_for_table,
                 self.columns_increment_for_table_csv,
+                self.columns_for_agr_year,
             ],
         ):
             file_name = f"{self.date_period_type}_{message_type}_{actual_date}.xlsx"

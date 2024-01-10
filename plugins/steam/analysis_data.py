@@ -32,6 +32,12 @@ class Analysis(BaseOperator):
 
     def _find_actual_date(self, context: Context) -> str:
         actual_date = context["data_interval_start"].start_of(self.date_period_type)
+        self.year = (
+            context["data_interval_start"]
+            .start_of(self.date_period_type)
+            .start_of("year")
+            .format("YYYY-MM-DD")
+        )
         return actual_date.format("YYYY-MM-DD")
 
     def _find_prior_date(self, actual_date: str) -> str:
@@ -47,6 +53,22 @@ class Analysis(BaseOperator):
             .start_of(self.date_period_type)
             .format("YYYY-MM-DD")
         )
+
+    def _cummulativ_total_for_year(self, actual_data: str):
+        return f"""
+        select row_number() OVER(order by top_for_period DESC, avg_for_period DESC) as rank,
+        game_name,
+        top_for_period, 
+        avg_for_period
+        from (select game_name, 
+                     COUNT(*) as top_for_period,
+                     AVG(players_count)::float as avg_for_period
+              from (select * 
+                    from steam.steam_data 
+                    where date_trunc('year', date) = '{self.year}' and date <= '{actual_data}') as tab1
+              group by game_name
+              ) as tab2
+        """
 
     def _analysis_day(
         self,
@@ -123,18 +145,25 @@ class Analysis(BaseOperator):
         order by ROUND(increment_percent_players::numeric, 2)::float DESC
         """
 
-        pg_hook = PostgresHook(postgres_conn_id=self.postgres_conn_id)
-        actual_data = pg_hook.get_records(query_actual_data)
-        new_in_top = pg_hook.get_records(query_new_in_top)
-        go_out_from_top = pg_hook.get_records(query_go_out_from_top)
-        stay_in_top = pg_hook.get_records(query_stay_in_top)
+        # actual_data = self.pg_hook.get_records(query_actual_data)
+        # new_in_top = self.pg_hook.get_records(query_new_in_top)
+        # go_out_from_top = self.pg_hook.get_records(query_go_out_from_top)
+        # stay_in_top = self.pg_hook.get_records(query_stay_in_top)
 
         return {
-            "actual_data": actual_data,
-            "new_in_top": new_in_top,
-            "go_out_from_top": go_out_from_top,
-            "stay_in_top": stay_in_top,
+            "actual_data": query_actual_data,
+            "new_in_top": query_new_in_top,
+            "go_out_from_top": query_go_out_from_top,
+            "stay_in_top": query_stay_in_top,
+            "cummulativ_total_for_year": self._cummulativ_total_for_year(actual_date),
         }
+
+        # return {
+        #     "actual_data": actual_data,
+        #     "new_in_top": new_in_top,
+        #     "go_out_from_top": go_out_from_top,
+        #     "stay_in_top": stay_in_top,
+        # }
 
     def _analysis_not_day(
         self, actual_date: str, prior_date: str, date_period_type: str
@@ -154,6 +183,22 @@ class Analysis(BaseOperator):
               group by game_name
               ) as tab2
         limit 100
+        """
+
+        ## аггрегация по всем данным
+        query_actual_data_full = f"""
+        select row_number() OVER(order by top_for_period DESC, avg_for_period DESC) as rank,
+        game_name,
+        top_for_period, 
+        avg_for_period
+        from (select game_name, 
+                     COUNT(*) as top_for_period,
+                     AVG(players_count)::float as avg_for_period
+              from (select * 
+                    from steam.steam_data 
+                    where date_trunc('{date_period_type}', date) = '{actual_date}') as tab1
+              group by game_name
+              ) as tab2
         """
 
         subqueries = f"""
@@ -241,17 +286,25 @@ class Analysis(BaseOperator):
         order by increment_days_in_top DESC, ROUND(increment_percent_avg_players::numeric, 2)::float DESC, rank_actual
         """
 
-        pg_hook = PostgresHook(postgres_conn_id=self.postgres_conn_id)
-        actual_data = pg_hook.get_records(query_actual_data)
-        new_in_top = pg_hook.get_records(query_new_in_top)
-        go_out_from_top = pg_hook.get_records(query_go_out_from_top)
-        stay_in_top = pg_hook.get_records(query_stay_in_top)
+        # actual_data = self.pg_hook.get_records(query_actual_data)
+        # new_in_top = self.pg_hook.get_records(query_new_in_top)
+        # go_out_from_top = self.pg_hook.get_records(query_go_out_from_top)
+        # stay_in_top = self.pg_hook.get_records(query_stay_in_top)
+
+        # return {
+        #     "actual_data": actual_data,
+        #     "new_in_top": new_in_top,
+        #     "go_out_from_top": go_out_from_top,
+        #     "stay_in_top": stay_in_top,
+        # }
 
         return {
-            "actual_data": actual_data,
-            "new_in_top": new_in_top,
-            "go_out_from_top": go_out_from_top,
-            "stay_in_top": stay_in_top,
+            "actual_data": query_actual_data,
+            "new_in_top": query_new_in_top,
+            "go_out_from_top": query_go_out_from_top,
+            "stay_in_top": query_stay_in_top,
+            "actual_data_full": query_actual_data_full,
+            "cummulativ_total_for_year": self._cummulativ_total_for_year(actual_date),
         }
 
     def _format_num(self, num: float) -> str:
@@ -272,8 +325,10 @@ class Analysis(BaseOperator):
             path_save, f"{actual_date}_{self.date_period_type}.json"
         )
 
+        columns_commulativ = ["rank", "game_name", "top_for_period", "avg_for_period"]
+
         if self.date_period_type == "day":
-            dict_result_sql = self._analysis_day(
+            dict_script_sql = self._analysis_day(
                 actual_date=actual_date, prior_date=prior_date
             )
             columns = ["rank", "game_name", "players_count"]
@@ -286,7 +341,7 @@ class Analysis(BaseOperator):
             ]
 
         else:
-            dict_result_sql = self._analysis_not_day(
+            dict_script_sql = self._analysis_not_day(
                 actual_date=actual_date,
                 prior_date=prior_date,
                 date_period_type=self.date_period_type,
@@ -311,19 +366,22 @@ class Analysis(BaseOperator):
                 ("new_in_top", columns),
                 ("go_out_from_top", columns),
                 ("stay_in_top", columns_increment),
+                ("cummulativ_total_for_year", columns_commulativ),
             ]
         }
 
-        for data_type in [
-            "actual_data",
-            "new_in_top",
-            "go_out_from_top",
-            "stay_in_top",
-        ]:
-            actual_columns = (
-                columns_increment if data_type == "stay_in_top" else columns
-            )
-            data = dict_result_sql[data_type]
+        if self.date_period_type != "day":
+            data_dict_for_json["actual_data_full"] = {
+                k: [] for k in data_dict_for_json["actual_data"].keys()
+            }
+
+        self.pg_hook = PostgresHook(postgres_conn_id=self.postgres_conn_id)
+
+        print(data_dict_for_json)
+        for data_type, columns in data_dict_for_json.items():
+            print(data_type, columns)
+            actual_columns = list(columns.keys())
+            data = self.pg_hook.get_records(dict_script_sql[data_type])
 
             for row in data:
                 for value, key in zip(row, actual_columns):
