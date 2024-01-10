@@ -50,6 +50,7 @@ class CreateMessage(BaseOperator):
 
     def _find_actual_date(self, context: Context) -> str:
         actual_date = context["data_interval_start"].start_of(self.date_period_type)
+        self.data_for_cum = context["data_interval_start"].start_of("day").format("YYYY-MM-DD")
         return (
             actual_date.day_of_week,
             actual_date.format("YYYY-MM-DD"),
@@ -214,7 +215,8 @@ class CreateMessage(BaseOperator):
                 self.columns_for_agr_year,
             ],
         ):
-            file_name = f"{self.date_period_type}_{message_type}_{actual_date}.xlsx"
+            date_now = actual_date if message_type != "CumulYear" else self.data_for_cum
+            file_name = f"{self.date_period_type}_{message_type}_{date_now}.xlsx"
             excel_files.append(file_name)
             file_save_path = os.path.join(path_save_xlsx, file_name)
 
@@ -243,8 +245,9 @@ class CreateMessage(BaseOperator):
             for sheet_name in wb.sheetnames:
                 sheet = wb[sheet_name]
 
-                combined_wb.create_sheet(title=file)
-                combined_sheet = combined_wb[file]
+                sheet_name_in_combined_wb = file.removesuffix(".xlsx")
+                combined_wb.create_sheet(title=sheet_name_in_combined_wb)
+                combined_sheet = combined_wb[sheet_name_in_combined_wb]
                 for row in sheet.iter_rows():
                     combined_sheet.append([cell.value for cell in row])
         combined_wb.save(file_save_path)

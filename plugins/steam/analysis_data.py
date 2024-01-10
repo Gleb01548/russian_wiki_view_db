@@ -32,11 +32,11 @@ class Analysis(BaseOperator):
 
     def _find_actual_date(self, context: Context) -> str:
         actual_date = context["data_interval_start"].start_of(self.date_period_type)
-        self.year = (
-            context["data_interval_start"]
-            .start_of(self.date_period_type)
-            .start_of("year")
-            .format("YYYY-MM-DD")
+        self.year_for_cum = (
+            context["data_interval_start"].start_of("year").format("YYYY-MM-DD")
+        )
+        self.day_for_cum = (
+            context["data_interval_start"].start_of("day").format("YYYY-MM-DD")
         )
         return actual_date.format("YYYY-MM-DD")
 
@@ -54,7 +54,7 @@ class Analysis(BaseOperator):
             .format("YYYY-MM-DD")
         )
 
-    def _cummulativ_total_for_year(self, actual_data: str):
+    def _cummulativ_total_for_year(self):
         return f"""
         select row_number() OVER(order by top_for_period DESC, avg_for_period DESC) as rank,
         game_name,
@@ -65,7 +65,7 @@ class Analysis(BaseOperator):
                      AVG(players_count)::float as avg_for_period
               from (select * 
                     from steam.steam_data 
-                    where date_trunc('year', date) = '{self.year}' and date <= '{actual_data}') as tab1
+                    where date_trunc('year', date) = '{self.year_for_cum}' and date <= '{self.day_for_cum}') as tab1
               group by game_name
               ) as tab2
         """
@@ -155,7 +155,7 @@ class Analysis(BaseOperator):
             "new_in_top": query_new_in_top,
             "go_out_from_top": query_go_out_from_top,
             "stay_in_top": query_stay_in_top,
-            "cummulativ_total_for_year": self._cummulativ_total_for_year(actual_date),
+            "cummulativ_total_for_year": self._cummulativ_total_for_year(),
         }
 
         # return {
@@ -304,7 +304,7 @@ class Analysis(BaseOperator):
             "go_out_from_top": query_go_out_from_top,
             "stay_in_top": query_stay_in_top,
             "actual_data_full": query_actual_data_full,
-            "cummulativ_total_for_year": self._cummulativ_total_for_year(actual_date),
+            "cummulativ_total_for_year": self._cummulativ_total_for_year(),
         }
 
     def _format_num(self, num: float) -> str:
