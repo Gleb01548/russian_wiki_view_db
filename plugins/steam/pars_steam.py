@@ -108,16 +108,29 @@ class ParsSteam(BaseOperator):
         options.add_argument("--disable-dev-shm-usage")
 
         print("драйвер")
-        driver = webdriver.Chrome(
-            service=ChromeService(ChromeDriverManager().install()), options=options
-        )
-        print("подключен")
-        print("полечение данных с страницы")
-        driver.get("https://store.steampowered.com/charts/mostplayed")
-        print("получено")
-        time.sleep(5)
-        print(driver.title)
-        self.switch(driver)
-        games_24_hours = self.make_list(driver)
+        second_sleep = 10
+        for i in range(10):
+            print("Попытка №", i)
+            driver = webdriver.Chrome(
+                service=ChromeService(ChromeDriverManager().install()), options=options
+            )
+            print("подключен")
+            print("полечение данных с страницы")
+            driver.get("https://store.steampowered.com/charts/mostplayed")
+            print("получено")
+            time.sleep(5)
+            print(driver.title)
+            self.switch(driver)
+            games_24_hours = self.make_list(driver)
+            if len(games_24_hours) == 100:
+                break
+            else:
+                print("Длинна списка:", len(games_24_hours))
+                print("DATA:", games_24_hours)
+                time.sleep(second_sleep)
+                second_sleep += 10
+        else:
+            ValueError("С прасингом что-то не так")
+
         self.save_json(games_24_hours)
         self.make_sql_script(games_24_hours)
