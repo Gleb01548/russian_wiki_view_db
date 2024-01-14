@@ -78,12 +78,12 @@ MESSAGE_CONFIG = {
         ),
         "message_new_games": (
             "Разница с прошедшим периодом ({{ date_period_type }}).\n\n"
-            "Новые страницы в топе:\n"
+            "Новые игры в топе:\n"
             "{{ col }}\n"
             "{{ pages_data }}"
         ),
         "message_go_out_games": (
-            "Игры которые вышли из топа:\n" "{{ col }}\n" "{{ pages_data }}"
+            "Игры, которые вышли из топа:\n" "{{ col }}\n" "{{ pages_data }}"
         ),
         "message_difference_games": (
             "Изменения среди тех игр, которые в топе остались:\n"
