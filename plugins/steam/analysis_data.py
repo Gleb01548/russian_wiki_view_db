@@ -9,6 +9,7 @@ from airflow.models import BaseOperator
 from airflow import AirflowException
 from airflow.utils.context import Context
 from airflow.providers.postgres.hooks.postgres import PostgresHook
+from airflow.hooks.base_hook import BaseHook
 
 
 class Analysis(BaseOperator):
@@ -79,10 +80,11 @@ class Analysis(BaseOperator):
         columns_new: list,
         columns_go_out: list,
     ) -> (tuple, tuple):
-        host = self.pg_hook.host
-        db = self.pg_hook.schema
-        login = self.pg_hook.login
-        password = self.pg_hook.password
+        conn = BaseHook.get_connection(self.postgres_conn_id)
+        host = conn.host
+        db = conn.schema
+        login = conn.login
+        password = conn.password
         engine = create_engine(f"postgresql+psycopg2://{login}:{password}@{host}/{db}")
 
         df1 = pd.read_sql(sql=query_new_in_top, con=engine)
@@ -159,11 +161,11 @@ class Analysis(BaseOperator):
         from (
             select t1.game_name as game_name,
                    t1.rank as rank_actual, 
-                   t2.rank as rank_prior,
-                   (t1.players_count - t2.players_count)::float/t2.players_count * 100 as increment_percent_players,
+                   t2.rank2 as rank_prior,
+                   (t1.players_count - t2.players_count2)::float/t2.players_count2 * 100 as increment_percent_players,
                    t1.players_count as players_count  
             from tab1 as t1
-            inner join tab2 as t2 on t1.game_name = t2.game_name            
+            inner join tab2 as t2 on t1.game_name = t2.game_name2            
         ) as t3
         order by ROUND(increment_percent_players::numeric, 2)::float DESC
         """
@@ -294,17 +296,17 @@ class Analysis(BaseOperator):
         rank_prior
         from (
             select 
-                   (t1.top_for_period - t2.top_for_period)::int as increment_days_in_top,
-                   (t1.avg_for_period - t2.avg_for_period)::float/t2.avg_for_period * 100 as increment_percent_avg_players,
+                   (t1.top_for_period - t2.top_for_period2)::int as increment_days_in_top,
+                   (t1.avg_for_period - t2.avg_for_period2)::float/t2.avg_for_period2 * 100 as increment_percent_avg_players,
                    t1.game_name as game_name,
                    t1.top_for_period as top_for_period_actual, 
-                   t2.top_for_period as top_for_period_prior,
+                   t2.top_for_period2 as top_for_period_prior,
                    t1.avg_for_period as avg_for_period_actual,
-                   t2.avg_for_period as avg_for_period_prior,
+                   t2.avg_for_period2 as avg_for_period_prior,
                    t1.rank as rank_actual,
-                   t2.rank as rank_prior
+                   t2.rank2 as rank_prior
             from tab1 as t1
-            inner join tab2 as t2 on t1.game_name = t2.game_name            
+            inner join tab2 as t2 on t1.game_name = t2.game_name2            
         ) as t3
         order by increment_days_in_top DESC, ROUND(increment_percent_avg_players::numeric, 2)::float DESC, rank_actual
         """
@@ -325,6 +327,7 @@ class Analysis(BaseOperator):
         cummulativ_total_for_year = self.pg_hook.get_records(
             self._cummulativ_total_for_year()
         )
+        actual_data_full = self.pg_hook.get_records(query_actual_data_full)
 
         return {
             "actual_data": actual_data,
@@ -332,6 +335,7 @@ class Analysis(BaseOperator):
             "go_out_from_top": go_out_from_top,
             "stay_in_top": stay_in_top,
             "cummulativ_total_for_year": cummulativ_total_for_year,
+            "actual_data_full": actual_data_full,
         }
 
     def _format_num(self, num: float) -> str:
