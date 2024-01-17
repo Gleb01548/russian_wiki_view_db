@@ -72,20 +72,20 @@ MESSAGE_CONFIG = {
             "avg_for_period_prior": "Пред. ср. макс. игроков",
         },
         "message_top_now": (
-            "Информация за #{{ ds }} ({{ day_of_week }}). Период: #{{ date_period_type }}.\n\n"
+            "📊Информация за #{{ ds }} ({{ day_of_week }}). Период: #{{ date_period_type }}.\n\n"
             "{{ col }}\n"
             "{{ pages_data }}"
         ),
         "message_new_games": (
-            "Разница с прошедшим периодом ({{ date_period_type }}).\n\n"
+            "📈Разница с прошедшим периодом ({{ date_period_type }}).\n\n"
             "Новые игры в топе:\n"
             "{{ col }}\n"
             "{{ pages_data }}"
         ),
-        "message_go_out_games": (
+        "📉message_go_out_games": (
             "Игры, которые вышли из топа:\n" "{{ col }}\n" "{{ pages_data }}"
         ),
-        "message_difference_games": (
+        "📈📉message_difference_games": (
             "Изменения среди тех игр, которые в топе остались:\n"
             "{{ col }}\n"
             "{{ pages_data }}\n\n"
@@ -127,21 +127,21 @@ MESSAGE_CONFIG = {
             "avg_for_period_prior": "Pri. av. max. players",
         },
         "message_top_now": (
-            "Information for #{{ ds }} ({{ day_of_week }}). Period #{{ date_period_type }}.\n\n"
+            "📊Information for #{{ ds }} ({{ day_of_week }}). Period #{{ date_period_type }}.\n\n"
             "{{ col }}\n"
             "{{ pages_data }}"
         ),
         "message_new_games": (
-            "Difference from the previous period ({{ date_period_type }}).\n\n"
+            "📈Difference from the previous period ({{ date_period_type }}).\n\n"
             "New games at the top:\n"
             "{{ col }}\n"
             "{{ pages_data }}"
         ),
         "message_go_out_games": (
-            "Games that are out of the top:\n" "{{ col }}\n" "{{ pages_data }}"
+            "📉Games that are out of the top:\n" "{{ col }}\n" "{{ pages_data }}"
         ),
         "message_difference_games": (
-            "Changes among those games that remained in the top:\n"
+            "📈📉Changes among those games that remained in the top:\n"
             "{{ col }}\n"
             "{{ pages_data }}\n\n"
             "More details in the excel file."
