@@ -1,5 +1,6 @@
 PATH_TEMP_FILES = "/data/wiki_data/temp_files"
 PATH_DOMAIN_DATA = "/data/wiki_data/domain_data"
+PATH_SUCCESS = "/data/wiki_data/_success"
 PASTGRES_CONN_ID = "wiki_views_postgres"
 CLICKHOUSE_CONN_ID = "wiki_views_clickhouse"
 

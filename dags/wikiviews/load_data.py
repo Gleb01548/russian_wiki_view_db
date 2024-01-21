@@ -6,6 +6,7 @@ from urllib import request
 
 import pendulum
 from airflow import DAG
+from airflow.operators.bash import BashOperator
 from airflow.operators.empty import EmptyOperator
 from airflow.operators.python import PythonOperator
 from airflow.operators.datetime import BranchDateTimeOperator
@@ -22,12 +23,15 @@ from wikiviews.constants import (
     # пути
     PATH_TEMP_FILES,
     PATH_DOMAIN_DATA,
+    PATH_SUCCESS,
     # для подключения
     PASTGRES_CONN_ID,
     CLICKHOUSE_CONN_ID,
     # настройки
     DOMAIN_CONFIG,
 )
+
+path_success_load = os.path.join(PATH_SUCCESS, "load_data")
 
 """
 Даг качает данные с википедии, готовит скрипты, 
@@ -156,10 +160,18 @@ for domain_code, config in DOMAIN_CONFIG.items():
             dag=dag,
         )
 
+        success = EmptyOperator(task_id="success", dag=dag, trigger_rule="none_failed")
+
         load_to_postgres >> time_check >> [hours_views_sum, not_end_day]
         hours_views_sum >> postgres_to_clickhouse >> clean_table
+        [not_end_day, clean_table] >> success
 
     groups_load_to_postgres.append(load_to_postgres_trigger_clickhouse())
+
+create_success_file = BashOperator(
+    task_id="create_success_file",
+    bash_command=(f"touch {path_success_load}/" "{{ data_interval_start }}_success"),
+)
 
 send_message_telegram_task = TelegramOperator(
     task_id="send_message_telegram",
@@ -176,5 +188,6 @@ send_message_telegram_task = TelegramOperator(
     >> get_data
     >> make_scripts_load
     >> groups_load_to_postgres
+    >> create_success_file
     >> send_message_telegram_task
 )
