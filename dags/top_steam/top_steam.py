@@ -24,7 +24,7 @@ dag = DAG(
     start_date=pendulum.datetime(2024, 1, 1).add(months=-1),
     end_date=pendulum.now("UTC"),
     tags=["steam", "top_steam"],
-    schedule_interval="20 0 * * *",
+    schedule_interval="20 1 * * *",
     default_args=default_args,
     max_active_runs=1,
     template_searchpath=path_save_script,
